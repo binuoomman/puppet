@@ -1,0 +1,285 @@
+Puppet configuraton
++++++++++++++++++++
+
+	[root@ip-172-31-46-237 puppet]# cd /etc/puppet
+	[root@ip-172-31-46-237 puppet]# cat puppet.conf
+	[root@ip-172-31-46-237 puppet]# puppet config print
+
+	[root@ip-172-31-46-237 puppet]# puppet config print|grep -i interval
+	rrdinterval = 1800
+	runinterval = 1800
+
+	[root@ip-172-31-46-237 puppet]# puppet config set runinterval <interval in seconds>
+
+puppet resources 
+++++++++++++++++
+	[root@ip-172-31-46-237 puppet]# puppet describe --list
+	These are the types known to puppet:
+	augeas          - Apply a change or an array of changes to the  ...
+	computer        - Computer object management using DirectorySer ...
+	cron            - Installs and manages cron jobs
+	exec            - Executes external commands
+	....
+	....
+
+	[root@ip-172-31-46-237 puppet]# puppet resource user |more
+	user { 'adm':
+	  ensure           => 'present',
+	  comment          => 'adm',
+	  gid              => '4',
+	  home             => '/var/adm',
+	  password         => '*',
+	  password_max_age => '99999',
+	  password_min_age => '0',
+	  shell            => '/sbin/nologin',
+	  uid              => '3',
+	}
+	user { 'bin':
+	  ensure           => 'present',
+	  comment          => 'bin',
+	  gid              => '1',
+	  home             => '/bin',
+	  password         => '*',
+	  password_max_age => '99999',
+	  password_min_age => '0',
+	  shell            => '/sbin/nologin',
+	  uid              => '1',
+	}
+	........
+	........
+
+	[root@ip-172-31-46-237 puppet]# puppet resource user root
+	user { 'root':
+	  ensure           => 'present',
+	  comment          => 'root',
+	  gid              => '0',
+	  home             => '/root',
+	  password         => '!!',
+	  password_max_age => '99999',
+	  password_min_age => '0',
+	  shell            => '/bin/bash',
+	  uid              => '0',
+	}
+
+
+To run manifest
++++++++++++++++
+	puppet parser validate <manifest>
+	puppet-apply <manifest> --noop
+	puppet-apply <manifest>
+
+
+creating a user
++++++++++++++++
+
+	vi user.pp
+
+	# To create users using puppet ###
+	user { 'myuser123' :
+	  ensure	=> 'present',
+	  managehome	=> 'true',
+	}
+
+	[ec2-user@ip-172-31-46-237 ~]$ puppet parser validate user.pp
+	[ec2-user@ip-172-31-46-237 ~]$ pwd
+	/home/ec2-user
+
+	[ec2-user@ip-172-31-46-237 ~]$ sudo su -
+	Last login: Sun Sep 30 07:16:13 UTC 2018 on pts/6
+	
+	[root@ip-172-31-46-237 ~]# cd /home/ec2-user
+	
+	[root@ip-172-31-46-237 ec2-user]# ll
+	total 4
+	-rw-rw-r--. 1 ec2-user ec2-user 102 Sep 30 07:23 user.pp
+
+	[root@ip-172-31-46-237 ec2-user]# puppet apply user.pp --noop
+	Notice: Compiled catalog for ip-172-31-46-237.ec2.internal in environment production in 0.10 seconds
+	Notice: /Stage[main]/Main/User[myuser123]/ensure: current_value absent, should be present (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 1 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.02 seconds
+	
+	[root@ip-172-31-46-237 ec2-user]#  puppet apply user.pp
+	Notice: Compiled catalog for ip-172-31-46-237.ec2.internal in environment production in 0.11 seconds
+	Notice: /Stage[main]/Main/User[myuser123]/ensure: created
+	Notice: Finished catalog run in 0.04 seconds
+	
+	[root@ip-172-31-46-237 ec2-user]# id myuser123
+	uid=1001(myuser123) gid=1001(myuser123) groups=1001(myuser123)
+
+Issuing a password to the user
+++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-46-237 ~]# openssl passwd -crypt
+	Password:
+	Verifying - Password:
+	sPcLHnaoTwkrI
+
+
+	[root@ip-172-31-46-237 ec2-user]# vi user.pp
+
+	# To create users using puppet ###
+	user { 'myuser123' :
+	  ensure	=> 'present',
+	  managehome	=> 'true',
+	  password	=> sPcLHnaoTwkrI
+	}  
+
+	[root@ip-172-31-46-237 ec2-user]# puppet apply user.pp --noop
+	Notice: Compiled catalog for ip-172-31-46-237.ec2.internal in environment production in 0.11 seconds
+	Notice: /Stage[main]/Main/User[myuser123]/password: current_value [old password hash redacted], should be [new password hash redacted] (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 1 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.02 seconds
+
+	[root@ip-172-31-46-237 ec2-user]# puppet apply user.pp
+	Notice: Compiled catalog for ip-172-31-46-237.ec2.internal in environment production in 0.11 seconds
+	Notice: /Stage[main]/Main/User[myuser123]/password: changed password
+	Notice: Finished catalog run in 0.04 seconds
+
+Creating a file
+++++++++++++++++
+	[root@ip-172-31-43-60 ~]# vi filecreate.pp
+
+	# To create file using puppet ###
+	file { "/var/tmp/puppet/file2":
+		ensure	=> 'file',
+		owner	=> 'root',
+		content => 'This is the file to test in the puppet',
+		mode	=> '755'
+		}
+
+	[root@ip-172-31-43-60 ~]# puppet parser validate filecreate.pp
+
+	[root@ip-172-31-43-60 ~]# puppet apply filecreate.pp --noop
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.10 seconds
+	Notice: /Stage[main]/Main/File[/var/tmp/puppet/file2]/ensure: current_value absent, should be file (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 1 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.02 seconds
+
+	[root@ip-172-31-43-60 ~]# puppet apply filecreate.pp
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.10 seconds
+	Error: Could not set 'file' on ensure: No such file or directory - /var/tmp/puppet/file220180930-1569-19wpfyh at 6:/root/filecreate.pp
+	Error: Could not set 'file' on ensure: No such file or directory - /var/tmp/puppet/file220180930-1569-19wpfyh at 6:/root/filecreate.pp
+	Wrapped exception:
+	No such file or directory - /var/tmp/puppet/file220180930-1569-19wpfyh
+	Error: /Stage[main]/Main/File[/var/tmp/puppet/file2]/ensure: change from absent to file failed: Could not set 'file' on ensure: No such file or directory - /var/tmp/puppet/file220180930-1569-19wpfyh at 6:/root/filecreate.pp
+	Notice: Finished catalog run in 0.02 seconds
+
+	[root@ip-172-31-43-60 ~]# mkdir /var/tmp/puppet/
+
+	[root@ip-172-31-43-60 ~]# puppet apply filecreate.pp
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.10 seconds
+	Notice: /Stage[main]/Main/File[/var/tmp/puppet/file2]/ensure: defined content as '{md5}7c26114a2c34e65f47bb7fd821d4ee0f'
+	Notice: Finished catalog run in 0.02 seconds
+
+	[root@ip-172-31-43-60 ~]# ll /var/tmp/puppet/
+	total 4
+	-rwxr-xr-x. 1 root root 38 Sep 30 09:13 file2
+
+	[root@ip-172-31-43-60 ~]# cat /var/tmp/puppet/file2
+	This is the file to test in the puppet[root@ip-172-31-43-60 ~]#
+
+modifying the group
++++++++++++++++++++
+
+	[root@ip-172-31-43-60 ~]# vi filecreate.pp
+
+	# To modify owner of the file using puppet ###
+	file { "/var/tmp/puppet/file2":
+		ensure  => 'file',
+		owner   => 'root',
+		group   => 'bin',
+		content => 'This is the file to test in the puppet',
+		mode    => '755',
+		}
+
+	[root@ip-172-31-43-60 ~]# puppet apply filecreate.pp
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.10 seconds
+	Notice: /Stage[main]/Main/File[/var/tmp/puppet/file2]/group: group changed 'root' to 'bin'
+	Notice: Finished catalog run in 0.02 seconds
+
+	[root@ip-172-31-43-60 ~]# ll /var/tmp/puppet/
+	total 4
+	-rwxr-xr-x. 1 root bin 38 Sep 30 09:13 file2
+
+Installing a package
++++++++++++++++++++++
+
+	[root@ip-172-31-43-60 ~]# rpm -q vsftpd
+	package vsftpd is not installed
+
+	[root@ip-172-31-43-60 ~]# vi package.pp
+
+	[root@ip-172-31-43-60 ~]# cat package.pp
+
+	# This is to install package ###
+	package {"vsftpd":
+		ensure  => 'present',
+		}
+
+	[root@ip-172-31-43-60 ~]# puppet parser validate package.pp
+
+	[root@ip-172-31-43-60 ~]# puppet apply package.pp --noop
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.30 seconds
+	Warning: The package type's allow_virtual parameter will be changing its default value from false to true in a future release. If you do not want to allow virtual packages, please explicitly set allow_virtual to false.
+	   (at /usr/share/ruby/vendor_ruby/puppet/type.rb:816:in `set_default')
+	Notice: /Stage[main]/Main/Package[vsftpd]/ensure: current_value absent, should be present (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 1 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.14 seconds
+
+	[root@ip-172-31-43-60 ~]# puppet apply package.pp
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.29 seconds
+	Warning: The package type's allow_virtual parameter will be changing its default value from false to true in a future release. If you do not want to allow virtual packages, please explicitly set allow_virtual to false.
+	   (at /usr/share/ruby/vendor_ruby/puppet/type.rb:816:in `set_default')
+	Notice: /Stage[main]/Main/Package[vsftpd]/ensure: created
+	Notice: Finished catalog run in 2.10 seconds
+
+	[root@ip-172-31-43-60 ~]# rpm -q vsftpd
+	vsftpd-3.0.2-22.el7.x86_64
+
+start and enable the service 
+++++++++++++++++++++++++++++
+
+	[root@ip-172-31-43-60 ~]# systemctl status vsftpd
+	т vsftpd.service - Vsftpd ftp daemon
+	   Loaded: loaded (/usr/lib/systemd/system/vsftpd.service; disabled; vendor preset: disabled)
+	   Active: inactive (dead)
+	   
+	[root@ip-172-31-43-60 ~]# vi service.pp
+	
+	[root@ip-172-31-43-60 ~]# cat service.pp
+	# This is to start and enable the service ###
+	service {"vsftpd":
+		ensure  => 'running',
+		enable  => 'true'
+		}
+		
+	[root@ip-172-31-43-60 ~]# puppet parser validate service.pp
+	
+	[root@ip-172-31-43-60 ~]# puppet apply service.pp --noop
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.11 seconds
+	Notice: /Stage[main]/Main/Service[vsftpd]/ensure: current_value stopped, should be running (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 1 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.06 seconds
+	
+	[root@ip-172-31-43-60 ~]#  puppet apply service.pp
+	Notice: Compiled catalog for ip-172-31-43-60.ec2.internal in environment production in 0.11 seconds
+	Notice: /Stage[main]/Main/Service[vsftpd]/ensure: ensure changed 'stopped' to 'running'
+	Notice: Finished catalog run in 0.17 seconds
+	
+	[root@ip-172-31-43-60 ~]# systemctl status vsftpd
+	т vsftpd.service - Vsftpd ftp daemon
+	   Loaded: loaded (/usr/lib/systemd/system/vsftpd.service; enabled; vendor preset: disabled)
+	   Active: active (running) since Sun 2018-09-30 09:53:17 UTC; 17s ago
+	 Main PID: 3533 (vsftpd)
+	   CGroup: /system.slice/vsftpd.service
+		   тт3533 /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+
+	Sep 30 09:53:17 ip-172-31-43-60.ec2.internal systemd[1]: Starting Vsftpd ftp ...
+	Sep 30 09:53:17 ip-172-31-43-60.ec2.internal systemd[1]: Started Vsftpd ftp d...
+	Hint: Some lines were ellipsized, use -l to show in full.

@@ -1,0 +1,270 @@
+creating and Pushing file to remote (github repository)
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-85-221 ~]# cd /binu
+
+	[root@ip-172-31-85-221 binu]# mkdir myrepo2
+
+	[root@ip-172-31-85-221 binu]# cd myrepo2
+
+	[root@ip-172-31-85-221 myrepo2]# git init .
+	Initialized empty Git repository in /binu/myrepo2/.git/
+
+	[root@ip-172-31-85-221 myrepo2]# ls -al
+	total 0
+	drwxr-xr-x. 3 root root  18 Sep 29 05:13 .
+	drwxr-xr-x. 4 root root  35 Sep 29 05:13 ..
+	drwxr-xr-x. 7 root root 119 Sep 29 05:13 .git
+
+	[root@ip-172-31-85-221 myrepo2]# vi testfile
+
+	[root@ip-172-31-85-221 myrepo2]# ll
+	total 4
+	-rw-r--r--. 1 root root 15 Sep 29 05:13 testfile
+
+	[root@ip-172-31-85-221 myrepo2]# git status
+	# On branch master
+	#
+	# Initial commit
+	#
+	# Untracked files:
+	#   (use "git add <file>..." to include in what will be committed)
+	#
+	#       testfile
+	nothing added to commit but untracked files present (use "git add" to track)
+
+	[root@ip-172-31-85-221 myrepo2]# git add -A
+
+	[root@ip-172-31-85-221 myrepo2]# git status
+	# On branch master
+	#
+	# Initial commit
+	#
+	# Changes to be committed:
+	#   (use "git rm --cached <file>..." to unstage)
+	#
+	#       new file:   testfile
+	#
+
+	[root@ip-172-31-85-221 myrepo2]# git commit -m "first commit"
+	[master (root-commit) 4287c72] first commit
+	 Committer: root <root@ip-172-31-85-221.ec2.internal>
+	Your name and email address were configured automatically based
+	on your username and hostname. Please check that they are accurate.
+	You can suppress this message by setting them explicitly:
+
+	    git config --global user.name "Your Name"
+	    git config --global user.email you@example.com
+
+	After doing this, you may fix the identity used for this commit with:
+
+	    git commit --amend --reset-author
+
+	 1 file changed, 1 insertion(+)
+	 create mode 100644 testfile
+	 
+	[root@ip-172-31-85-221 myrepo2]# git status
+	# On branch master
+	nothing to commit, working directory clean
+
+	[root@ip-172-31-85-221 myrepo2]# git push https://github.com/binuoomman/myrepo2.git master
+	Username for 'https://github.com': binu_oomman@yahoo.com
+	Password for 'https://binu_oomman@yahoo.com@github.com':
+	Counting objects: 3, done.
+	Writing objects: 100% (3/3), 227 bytes | 0 bytes/s, done.
+	Total 3 (delta 0), reused 0 (delta 0)
+	remote:
+	remote: Create a pull request for 'master' on GitHub by visiting:
+	remote:      https://github.com/binuoomman/myrepo2/pull/new/master
+	remote:
+	To https://github.com/binuoomman/myrepo2.git
+	 * [new branch]      master -> master
+
+
+setting the remote repository path
+++++++++++++++++++++++++++++++++++
+	[root@ip-172-31-85-221 myrepo2]# git remote add origin  https://github.com/binuoomman/myrepo2.git
+	[root@ip-172-31-85-221 myrepo2]# git remote -v
+	origin  https://github.com/binuoomman/myrepo2.git (fetch)
+	origin  https://github.com/binuoomman/myrepo2.git (push)
+
+	[root@ip-172-31-85-221 myrepo2]# git push -u origin master
+	Username for 'https://github.com': binu_oomman@yahoo.com
+	Password for 'https://binu_oomman@yahoo.com@github.com':
+	Branch master set up to track remote branch master from origin.
+	Everything up-to-date
+
+creating branches 
++++++++++++++++++
+	[root@ip-172-31-85-221 binu]# cd myrep1
+	[root@ip-172-31-85-221 myrep1]# git branch branch1
+	[root@ip-172-31-85-221 myrep1]# git branch
+	  branch1
+	* master
+
+
+	[root@ip-172-31-85-221 myrep1]# git branch
+	* branch1
+	  master
+	[root@ip-172-31-85-221 myrep1]# git checkout master
+	Switched to branch 'master'
+	[root@ip-172-31-85-221 myrep1]# git branch
+	  branch1
+	* master
+
+	[root@ip-172-31-85-221 myrepo2]# git branch
+	* master
+	
+	[root@ip-172-31-85-221 myrepo2]# ll
+	total 4
+	-rw-r--r--. 1 root root 15 Sep 29 05:13 testfile
+	
+	[root@ip-172-31-85-221 myrepo2]# cat testfile
+	jfjkhhdkfhdklk
+	
+	[root@ip-172-31-85-221 myrepo2]# git branch branch1
+	
+	[root@ip-172-31-85-221 myrepo2]# git branch
+	  branch1
+	* master
+	
+	[root@ip-172-31-85-221 myrepo2]# git checkout branch1
+	Switched to branch 'branch1'
+
+making modification to branch
++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-85-221 myrepo2]# ll
+	total 4
+		-rw-r--r--. 1 root root 15 Sep 29 05:13 testfile
+		
+	[root@ip-172-31-85-221 myrepo2]# vi testfile
+	
+	[root@ip-172-31-85-221 myrepo2]# ll
+	total 4
+	-rw-r--r--. 1 root root 27 Sep 29 06:00 testfile
+	
+	[root@ip-172-31-85-221 myrepo2]# cat testfile
+	jfjkhhdkfhdklk
+	second line
+	
+	[root@ip-172-31-85-221 myrepo2]# git status
+	# On branch branch1
+	# Changes not staged for commit:
+	#   (use "git add <file>..." to update what will be committed)
+	#   (use "git checkout -- <file>..." to discard changes in working directory)
+	#
+	#       modified:   testfile
+	#
+	no changes added to commit (use "git add" and/or "git commit -a")
+	[root@ip-172-31-85-221 myrepo2]# git add testfile
+	[root@ip-172-31-85-221 myrepo2]# git status
+	# On branch branch1
+	# Changes to be committed:
+	#   (use "git reset HEAD <file>..." to unstage)
+	#
+	#       modified:   testfile
+	#
+
+	[root@ip-172-31-85-221 myrepo2]# git commit -m "second commit"
+	[branch1 365ed65] second commit
+	 Committer: root <root@ip-172-31-85-221.ec2.internal>
+	Your name and email address were configured automatically based
+	on your username and hostname. Please check that they are accurate.
+	You can suppress this message by setting them explicitly:
+
+	    git config --global user.name "Your Name"
+	    git config --global user.email you@example.com
+
+	After doing this, you may fix the identity used for this commit with:
+
+	    git commit --amend --reset-author
+
+	 1 file changed, 1 insertion(+)
+	 
+	[root@ip-172-31-85-221 myrepo2]# git checkout master
+	Switched to branch 'master'
+	
+	[root@ip-172-31-85-221 myrepo2]# cat testfile
+	jfjkhhdkfhdklk
+	
+Merging branch and updating master
+++++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-85-221 myrepo2]# git merge branch1
+	Updating 4287c72..365ed65
+	Fast-forward
+	 testfile | 1 +
+	 1 file changed, 1 insertion(+)
+	 
+	[root@ip-172-31-85-221 myrepo2]# git status
+	# On branch master
+	# Your branch is ahead of 'origin/master' by 1 commit.
+	#   (use "git push" to publish your local commits)
+	#
+	nothing to commit, working directory clean
+	
+	[root@ip-172-31-85-221 myrepo2]# cat testfile
+	jfjkhhdkfhdklk
+	second line
+	
+	[root@ip-172-31-85-221 myrepo2]# git push -u origin master
+	Username for 'https://github.com': binu_oomman@yahoo.com
+	Password for 'https://binu_oomman@yahoo.com@github.com':
+	Counting objects: 5, done.
+	Writing objects: 100% (3/3), 269 bytes | 0 bytes/s, done.
+	Total 3 (delta 0), reused 0 (delta 0)
+	To https://github.com/binuoomman/myrepo2.git
+	   4287c72..365ed65  master -> master
+	Branch master set up to track remote branch master from origin.
+
+reverting to previous stage
++++++++++++++++++++++++++++
+	[root@ip-172-31-88-168 myrepo2]# git log
+	commit 365ed652b5d2929d78c8d062cfa72d82313f4821
+	Author: root <root@ip-172-31-85-221.ec2.internal>
+	Date:   Sat Sep 29 06:01:20 2018 +0000
+
+	    second commit
+
+	commit 4287c7253b4e12c419f868a2fc5a8520af76ee85
+	Author: root <root@ip-172-31-85-221.ec2.internal>
+	Date:   Sat Sep 29 05:17:28 2018 +0000
+
+	    first commit
+	
+	[root@ip-172-31-88-168 myrepo2]# git reset --hard 4287c7253b4e12c419f868a2fc5a8520af76ee85
+	HEAD is now at 4287c72 first commit
+	
+	[root@ip-172-31-88-168 myrepo2]# git log
+	commit 4287c7253b4e12c419f868a2fc5a8520af76ee85
+	Author: root <root@ip-172-31-85-221.ec2.internal>
+	Date:   Sat Sep 29 05:17:28 2018 +0000
+
+	    first commit
+	
+	[root@ip-172-31-88-168 myrepo2]# cat testfile
+	jfjkhhdkfhdklk
+
+reverting the change to a new branch
+++++++++++++++++++++++++++++++++++++
+	[root@ip-172-31-88-168 myrepo2]# git log
+	commit 365ed652b5d2929d78c8d062cfa72d82313f4821
+	Author: root <root@ip-172-31-85-221.ec2.internal>
+	Date:   Sat Sep 29 06:01:20 2018 +0000
+
+	    second commit
+
+	commit 4287c7253b4e12c419f868a2fc5a8520af76ee85
+	Author: root <root@ip-172-31-85-221.ec2.internal>
+	Date:   Sat Sep 29 05:17:28 2018 +0000
+
+	    first commit
+	
+	[root@ip-172-31-88-168 myrepo2]# git branch branch1 4287c7253b4e12c419f868a2fc5a8520af76ee85
+	
+	[root@ip-172-31-88-168 myrepo2]# git checkout branch1
+	Switched to branch 'branch1'
+	
+	[root@ip-172-31-88-168 myrepo2]# cat testfile
+	jfjkhhdkfhdklk
