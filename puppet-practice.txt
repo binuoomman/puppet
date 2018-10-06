@@ -184,7 +184,6 @@ Creating a file
 
 modifying the group
 +++++++++++++++++++
-
 	[root@ip-172-31-43-60 ~]# vi filecreate.pp
 
 	# To modify owner of the file using puppet ###
@@ -283,3 +282,245 @@ start and enable the service
 	Sep 30 09:53:17 ip-172-31-43-60.ec2.internal systemd[1]: Starting Vsftpd ftp ...
 	Sep 30 09:53:17 ip-172-31-43-60.ec2.internal systemd[1]: Started Vsftpd ftp d...
 	Hint: Some lines were ellipsized, use -l to show in full.
+
+
+creating a directory with user ownership of puppet1 and group ownership of root
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-94-91 ~]# cat directory.pp
+	user {'puppet1':
+		ensure => 'present',
+		managehome => 'true',
+		before => File ['/opt/mydirectory']
+		}
+	file {'/opt/mydirectory':
+		ensure => 'directory',
+		owner => 'puppet1',
+		group =>'root',
+		}
+
+	[root@ip-172-31-94-91 ~]#  puppet apply directory.pp --noop
+	Notice: Compiled catalog for ip-172-31-94-91.ec2.internal in environment production in 0.20 seconds
+	Notice: /Stage[main]/Main/User[puppet1]/ensure: current_value absent, should be present (noop)
+	Notice: /Stage[main]/Main/File[/opt/mydirectory]/ensure: current_value absent, should be directory (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 2 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.03 seconds
+
+	[root@ip-172-31-94-91 ~]#  puppet apply directory.pp
+	Notice: Compiled catalog for ip-172-31-94-91.ec2.internal in environment production in 0.21 seconds
+
+	[root@ip-172-31-94-91 ~]# ls -ld /opt/mydirectory
+	drwxr-xr-x. 2 puppet1 root 6 Oct  6 05:43 /opt/mydirectory
+
+
+Installing webserver services with a custom index file
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	[root@ip-172-31-94-91 ~]# cat http.pp
+	package {"httpd":
+		ensure  => 'present',
+		}
+
+	service {"httpd":
+		ensure  => 'running',
+		enable  => 'true',
+		require => Package ['httpd'],
+		}
+
+	file {"/var/www/html/index.html":
+		ensure => 'file',
+		content => 'Webserver',
+		require => Package ['httpd'],
+		notify  => Service ['httpd']
+		}
+
+
+	[root@ip-172-31-94-91 ~]# systemctl status httpd
+	т httpd.service - The Apache HTTP Server
+	   Loaded: loaded (/usr/lib/systemd/system/httpd.service; enabled; vendor preset: disabled)
+	   Active: active (running) since Sat 2018-10-06 06:49:39 UTC; 15s ago
+	     Docs: man:httpd(8)
+		   man:apachectl(8)
+	 Main PID: 11386 (httpd)
+	   Status: "Total requests: 0; Current requests/sec: 0; Current traffic:   0 B/sec"
+	   CGroup: /system.slice/httpd.service
+		   тт11386 /usr/sbin/httpd -DFOREGROUND
+		   тт11387 /usr/sbin/httpd -DFOREGROUND
+		   тт11388 /usr/sbin/httpd -DFOREGROUND
+		   тт11389 /usr/sbin/httpd -DFOREGROUND
+		   тт11390 /usr/sbin/httpd -DFOREGROUND
+		   тт11391 /usr/sbin/httpd -DFOREGROUND
+
+	Oct 06 06:49:39 ip-172-31-94-91.ec2.internal systemd[1]: Starting The Apache ...
+	Oct 06 06:49:39 ip-172-31-94-91.ec2.internal systemd[1]: Started The Apache H...
+	Hint: Some lines were ellipsized, use -l to show in full.
+
+	[root@ip-172-31-94-91 ~]# cat /var/www/html/index.html
+	webserver[root@ip-172-31-94-91 ~]#
+
+
+Installing ftp diretcory with a file in the home directory
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	[root@ip-172-31-94-91 ~]# cat sftp.pp
+	package {"vsftpd":
+		ensure  => 'present',
+		}
+
+	service {"vsftpd":
+		ensure  => 'running',
+		enable  => 'true',
+		require => Package ['vsftpd'],
+		}
+
+	file {"/var/ftp/pub/output":
+		ensure => 'file',
+		content => "ftpserver\n",
+		require => Package ['vsftpd'],
+		notify  => Service ['vsftpd']
+		}
+
+
+	[root@ip-172-31-94-91 ~]# puppet parser validate sftp.pp
+
+	[root@ip-172-31-94-91 ~]# puppet apply sftp.pp --noop
+	Notice: Compiled catalog for ip-172-31-94-91.ec2.internal in environment production in 0.51 seconds
+	Warning: The package type's allow_virtual parameter will be changing its default value from false to true in a future release. If you do not want to allow virtual packages, please explicitly set allow_virtual to false.
+	   (at /usr/share/ruby/vendor_ruby/puppet/type.rb:816:in `set_default')
+	Notice: /Stage[main]/Main/Package[vsftpd]/ensure: current_value absent, should be present (noop)
+	Notice: /Stage[main]/Main/File[/var/ftp/pub/output]/ensure: current_value absent, should be file (noop)
+	Notice: /Stage[main]/Main/Service[vsftpd]/ensure: current_value stopped, should be running (noop)
+	Notice: Class[Main]: Would have triggered 'refresh' from 3 events
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 events
+	Notice: Finished catalog run in 0.20 seconds
+
+	[root@ip-172-31-94-91 ~]# puppet apply sftp.pp
+	Notice: Compiled catalog for ip-172-31-94-91.ec2.internal in environment production in 0.51 seconds
+	Warning: The package type's allow_virtual parameter will be changing its default value from false to true in a future release. If you do not want to allow virtual packages, please explicitly set allow_virtual to false.
+	   (at /usr/share/ruby/vendor_ruby/puppet/type.rb:816:in `set_default')
+	Notice: /Stage[main]/Main/Package[vsftpd]/ensure: created
+	Notice: /Stage[main]/Main/File[/var/ftp/pub/output]/ensure: defined content as '{md5}acceac275eb102be81f873d134559b2e'
+	Notice: /Stage[main]/Main/Service[vsftpd]/ensure: ensure changed 'stopped' to 'running'
+	Notice: Finished catalog run in 2.15 seconds
+
+	[root@ip-172-31-94-91 ~]# ll /var/ftp/pub/
+	total 4
+	-rw-r--r--. 1 root root 9 Oct  6 10:29 output
+
+	[root@ip-172-31-94-91 ~]# cat /var/ftp/pub/output
+	ftpserver
+
+facts and facters (OS config/HW config)
++++++++++++++++++++++++++++++++++++++++
+	[root@ip-172-31-94-91 ~]# facter |more
+	architecture => x86_64
+	augeasversion => 1.4.0
+	bios_release_date => 08/24/2006
+	bios_vendor => Xen
+	bios_version => 4.2.amazon
+	blockdevice_xvda_size => 10737418240
+	blockdevices => xvda
+	domain => ec2.internal
+	facterversion => 1.7.6
+	filesystems => iso9660,xfs
+	fqdn => ip-172-31-94-91.ec2.internal
+	hardwareisa => x86_64
+	hardwaremodel => x86_64
+	hostname => ip-172-31-94-91
+	id => root
+	interfaces => eth0,lo
+	ipaddress => 172.31.94.91
+	ipaddress_eth0 => 172.31.94.91
+	ipaddress_lo => 127.0.0.1
+	is_virtual => true
+	kernel => Linux
+	kernelmajversion => 3.10
+	kernelrelease => 3.10.0-862.el7.x86_64
+	kernelversion => 3.10.0
+	macaddress => 12:5b:0c:38:30:d2
+	macaddress_eth0 => 12:5b:0c:38:30:d2
+	manufacturer => Xen
+	memoryfree => 768.52 MB
+	memoryfree_mb => 768.52
+	memorysize => 990.14 MB
+	memorysize_mb => 990.14
+	memorytotal => 990.14 MB
+	netmask => 255.255.240.0
+	netmask_eth0 => 255.255.240.0
+	netmask_lo => 255.0.0.0
+	network_eth0 => 172.31.80.0
+	network_lo => 127.0.0.0
+	operatingsystem => RedHat
+	operatingsystemmajrelease => 7
+	operatingsystemrelease => 7.5
+	osfamily => RedHat
+	path => /usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+	physicalprocessorcount => 1
+	processor0 => Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz
+	processorcount => 1
+	productname => HVM domU
+	ps => ps -ef
+	puppetversion => 3.6.2
+	rubysitedir => /usr/local/share/ruby/site_ruby/
+	rubyversion => 2.0.0
+	selinux => true
+	selinux_config_mode => enforcing
+	selinux_config_policy => unknown
+	selinux_current_mode => enforcing
+	selinux_enforced => true
+	selinux_mode => unknown
+	selinux_policyversion => 31
+	serialnumber => ec22fc82-2b61-2963-a734-64c450ad50ff
+	sshecdsakey => AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLktbnNQEyyWf
+	CSfv6kvgUqlc+aH0896iTOJbv+j7DlL2hEZmyx0ijTQR3DUnIPRAj7G7eYduoIr9+CQ+Ud51JA=
+	sshfp_ecdsa => SSHFP 3 1 1c918b9286f88e0dbbb5ad5484ae69fe138c86f2
+	SSHFP 3 2 c86be505d95b6b0ef922b29f77bc468b9f60855c313d37181b852ba7087c7b1e
+	sshfp_rsa => SSHFP 1 1 2a2084fdf422f83bbe283646582d38b564120957
+	SSHFP 1 2 33f8e1bc6c850ee9c2f64181df5d43526d48a6115a6c9179064e93a1b9e9304e
+	sshrsakey => AAAAB3NzaC1yc2EAAAADAQABAAABAQDFS5ENJIrA1GSC7zn3vUT/MW2T7y2d7XSRiFX
+	bGG+h8182KcrA8XEmuKQ2Nib/3rH76cTXFc8TlbN4QKnIWXvJRhncfFA9raDS7eml15aEwhpU/g5xpYn
+	zC87fF2QM7Neb5oPq5wV0sWZT4vg7EU5KpOrdqQtSzZw1qawkYFhqYT4juB+pcQtKTqjIwnN5QXidvoT
+	0xlomq9JKXirmOMT2pyeuNLcXr0o9e+kLMJ0nfeZy+SvIMtwg7mlxaS0eK1zVtR1F2AUAyX3ws6GMDx3
+	wlMWXkGKZmOouWy8kqOL6aT/xH0TnFcz2ebL5oMYnwrgTNk1+ZGmjiEeyxUhhTiAl
+	swapfree => 0.00 MB
+	swapfree_mb => 0.00
+	swapsize => 0.00 MB
+	swapsize_mb => 0.00
+	timezone => UTC
+	type => Other
+	uniqueid => 1fac5b5e
+	uptime => 6:07 hours
+	uptime_days => 0
+	uptime_hours => 6
+	uptime_seconds => 22036
+	user logged => 2
+	uuid => EC22FC82-2B61-2963-A734-64C450AD50FF
+	virtual => xenhvm
+
+creating custom facter
+++++++++++++++++++++++
+	[root@ip-172-31-94-91 ~]# mkdir -p /etc/facter/facts.d
+
+	[root@ip-172-31-94-91 ~]# ll /etc/facter/facts.d
+	total 0
+
+	[root@ip-172-31-94-91 ~]# cd /etc/facter/facts.d
+
+	[root@ip-172-31-94-91 facts.d]# vi users
+
+	[root@ip-172-31-94-91 facts.d]# cat users
+	echo "User logged=`who|wc -l`"
+
+	[root@ip-172-31-94-91 facts.d]# ll users
+	-rw-r--r--. 1 root root 31 Oct  6 10:48 users
+
+
+	[root@ip-172-31-94-91 facts.d]# chmod +x users
+	[root@ip-172-31-94-91 facts.d]# ./users
+	User logged=1
+
+	[root@ip-172-31-94-91 facts.d]# facter |grep -i user
+	user logged => 1
+
+	[root@ip-172-31-94-91 facts.d]#  facter "User logged"
+	1
+
