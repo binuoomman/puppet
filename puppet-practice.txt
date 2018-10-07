@@ -524,3 +524,228 @@ creating custom facter
 	[root@ip-172-31-94-91 facts.d]#  facter "User logged"
 	1
 
+Defining class 
+++++++++++++++
+
+	class user2 {
+		user {'puppet1':
+			ensure => 'present',
+			managehome => 'true',
+			before => File ['/opt/mydirectory']
+			}
+		file {'/opt/mydirectory':
+			ensure => 'directory',
+			owner => 'puppet1',
+			group =>'root',
+			}
+	}
+	include user2
+
+
+Calling puppet factor variables
++++++++++++++++++++++++++++++++
+$::<fact name>
+
+using if for defining multiple variables
+++++++++++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-88-123 ~]# cat class.pp
+	class package_install {
+
+	  if $::osfamily == 'RedHat' {
+	     $pkgname = [ 'screen', 'strace', 'sudo' ]
+	     }
+	 elsif $::osfamily == 'Debian' {
+	     $pkgname = [ 'screen', 'strace', 'sudo' ]
+	     } else {
+	     $pkgname = [ 'screen' ]
+	     }
+	   package { $pkgname:
+	     ensure => present,
+	       }
+	  }
+	#calling the class name package_install ##
+	include package_install
+
+	[root@ip-172-31-88-123 ~]# puppet parser validate class.pp
+
+	[root@ip-172-31-88-123 ~]# puppet apply class.pp
+	Notice: Compiled catalog for ip-172-31-88-123.ec2.internal in environment production in 0.32 seconds
+	Warning: The package type's allow_virtual parameter will be changing its default value from false to true in a future release. If you do not want to allow virtual packages, please explicitly set allow_virtual to false.
+	   (at /usr/share/ruby/vendor_ruby/puppet/type.rb:816:in `set_default')
+	Notice: /Stage[main]/Package_install/Package[screen]/ensure: created
+	Notice: /Stage[main]/Package_install/Package[strace]/ensure: created
+	Notice: Finished catalog run in 3.94 seconds
+
+	[root@ip-172-31-88-123 ~]# rpm -q screen
+	screen-4.1.0-0.25.20120314git3c2946.el7.x86_64
+
+	[root@ip-172-31-88-123 ~]# rpm -q sudo
+	sudo-1.8.19p2-13.el7.x86_64
+
+	[root@ip-172-31-88-123 ~]# rpm -q strace
+	strace-4.12-6.el7.x86_64
+
+
+using case for defining multiple variables
+++++++++++++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-88-123 ~]# cat class1.pp
+	class package_install {
+
+	 case $::osfamily {
+	 'RedHat': {
+	     $pkgname = [ 'screen', 'strace', 'sudo' ]
+	     }
+	 'Debian': {
+	     $pkgname = [ 'screen', 'strace', 'sudo' ]
+	     }
+	  default: {
+	     $pkgname = [ 'screen' ]
+	     }
+	  }
+	## Defining the resource ##
+	   package { $pkgname:
+	     ensure => present,
+	       }
+	  }
+	#calling the class name package_instal ##
+	include package_install
+
+
+
+Installing puppet master
++++++++++++++++++++++++++
+
+
+	[root@ip-172-31-88-123 ~]# rpm -ivh epel-release-latest-7.noarch.rpm
+	warning: epel-release-latest-7.noarch.rpm: Header V3 RSA/SHA256 Signature, key ID 352c64e5: NOKEY
+	Preparing...                          ################################# [100%]
+	Updating / installing...
+	   1:epel-release-7-11                ################################# [100%]
+	
+	[root@ip-172-31-88-123 ~]# yum install puppet-server
+	Loaded plugins: amazon-id, rhui-lb, search-disabled-repos
+	epel/x86_64/metalink                                     |  19 kB     00:00
+	epel                                                     | 3.2 kB     00:00
+	(1/3): epel/x86_64/group_gz                                |  88 kB   00:00
+	(2/3): epel/x86_64/updateinfo                              | 948 kB   00:00
+	(3/3): epel/x86_64/primary                                 | 3.6 MB   00:00
+	epel                                                                12721/12721
+	Resolving Dependencies
+	--> Running transaction check
+	---> Package puppet-server.noarch 0:3.6.2-3.el7 will be installed
+	--> Processing Dependency: puppet = 3.6.2-3.el7 for package: puppet-server-3.6.2-3.el7.noarch
+	--> Running transaction check
+	---> Package puppet.noarch 0:3.6.2-1.el7sat will be updated
+	---> Package puppet.noarch 0:3.6.2-3.el7 will be an update
+	--> Processing Dependency: rubygem(rgen) for package: puppet-3.6.2-3.el7.noarch
+	--> Running transaction check
+	---> Package rubygem-rgen.noarch 0:0.6.6-2.el7 will be installed
+	--> Finished Dependency Resolution
+
+	Dependencies Resolved
+
+	================================================================================
+	 Package               Arch           Version                Repository    Size
+	================================================================================
+	Installing:
+	 puppet-server         noarch         3.6.2-3.el7            epel          24 k
+	Installing for dependencies:
+	 rubygem-rgen          noarch         0.6.6-2.el7            epel          84 k
+	Updating for dependencies:
+	 puppet                noarch         3.6.2-3.el7            epel         1.2 M
+
+	Transaction Summary
+	================================================================================
+	Install  1 Package  (+1 Dependent package)
+	Upgrade             ( 1 Dependent package)
+
+	Total download size: 1.3 M
+	Is this ok [y/d/N]: y
+	Downloading packages:
+	Delta RPMs disabled because /usr/bin/applydeltarpm not installed.
+	warning: /var/cache/yum/x86_64/7Server/epel/packages/puppet-3.6.2-3.el7.noarch.rpm: Header V3 RSA/SHA256 Signature, key ID 352c64e5: NOKEY
+	Public key for puppet-3.6.2-3.el7.noarch.rpm is not installed
+	(1/3): puppet-3.6.2-3.el7.noarch.rpm                       | 1.2 MB   00:00
+	(2/3): puppet-server-3.6.2-3.el7.noarch.rpm                |  24 kB   00:00
+	(3/3): rubygem-rgen-0.6.6-2.el7.noarch.rpm                 |  84 kB   00:00
+	--------------------------------------------------------------------------------
+	Total                                              3.6 MB/s | 1.3 MB  00:00
+	Retrieving key from file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
+	Importing GPG key 0x352C64E5:
+	 Userid     : "Fedora EPEL (7) <epel@fedoraproject.org>"
+	 Fingerprint: 91e9 7d7c 4a5e 96f1 7f3e 888f 6a2f aea2 352c 64e5
+	 Package    : epel-release-7-11.noarch (installed)
+	 From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
+	Is this ok [y/N]: y
+	Running transaction check
+	Running transaction test
+	Transaction test succeeded
+	Running transaction
+	Warning: RPMDB altered outside of yum.
+	  Installing : rubygem-rgen-0.6.6-2.el7.noarch                              1/4
+	  Updating   : puppet-3.6.2-3.el7.noarch                                    2/4
+	  Installing : puppet-server-3.6.2-3.el7.noarch                             3/4
+	  Cleanup    : puppet-3.6.2-1.el7sat.noarch                                 4/4
+	  Verifying  : rubygem-rgen-0.6.6-2.el7.noarch                              1/4
+	  Verifying  : puppet-server-3.6.2-3.el7.noarch                             2/4
+	  Verifying  : puppet-3.6.2-3.el7.noarch                                    3/4
+	  Verifying  : puppet-3.6.2-1.el7sat.noarch                                 4/4
+
+	Installed:
+	  puppet-server.noarch 0:3.6.2-3.el7
+
+	Dependency Installed:
+	  rubygem-rgen.noarch 0:0.6.6-2.el7
+
+	Dependency Updated:
+	  puppet.noarch 0:3.6.2-3.el7
+
+	Complete!
+	
+	[root@ip-172-31-88-123 ~]# systemctl restart puppetmaster
+	
+	[root@ip-172-31-88-123 ~]# systemctl enable puppetmaster
+	Created symlink from /etc/systemd/system/multi-user.target.wants/puppetmaster.service to /usr/lib/systemd/system/puppetmaster.service.
+
+
+Configuring puppet-master
+++++++++++++++++++++++++++
+[root@puppet-master]# puppet cert --list
+
+[root@puppet-master]# hostname
+ip-172-31-88-123.ec2.internal
+
+In the client specify the hostname of the server
+[root@puppet-client]# cat /etc/puppet/puppet.conf
+server=ip-172-31-88-123.ec2.internal
+
+[root@puppet-client]# systemctl restart puppet
+
+puppet-master
+-------------
+[root@puppet-master]# puppet cert --list
+  "ip-172-31-82-51.ec2.internal" (SHA256) 3B:E4:F9:D9:07:9F:DD:5F:19:10:54:4C:35:B6:64:E1:36:F3:22:49:B7:FC:32:A7:FE:B1:82:F3:38:5C:43:8E
+
+[root@puppet-master]# puppet cert sign "ip-172-31-82-51.ec2.internal"
+Notice: Signed certificate request for ip-172-31-82-51.ec2.internal
+Notice: Removing file Puppet::SSL::CertificateRequest ip-172-31-82-51.ec2.internal at '/var/lib/puppet/ssl/ca/requests/ip-172-31-82-51.ec2.internal.pem'
+
+[root@puppet-master]# puppet cert --list
+
+[root@puppet-master]# puppet cert list --all
++ "ip-172-31-82-51.ec2.internal"  (SHA256) 08:21:34:C0:91:A6:6A:7F:FB:44:31:D0:49:32:4D:E7:58:B8:4A:B4:99:E5:F5:72:45:0A:5F:09:1C:91:8A:D5
++ "ip-172-31-88-123.ec2.internal" (SHA256) D5:C9:A7:71:58:AB:13:3C:CD:44:3E:51:D2:76:BE:41:FD:CC:1F:1E:43:B7:59:0E:21:45:2F:45:C4:7B:E4:2A (alt names: "DNS:ip-172-31-88-123.ec2.internal", "DNS:puppet", "DNS:puppet.ec2.internal")
+
+puppet-client
+-------------
+[root@puppet-client]# puppet agent -t
+Info: Retrieving plugin
+Info: Caching catalog for ip-172-31-82-51.ec2.internal
+Info: Applying configuration version '1538897300'
+Notice: Finished catalog run in 0.01 seconds
+
+puppet-master
+-------------
+create manifest named site.pp in /etc/puppet/manifests 
