@@ -712,40 +712,481 @@ Installing puppet master
 
 Configuring puppet-master
 ++++++++++++++++++++++++++
-[root@puppet-master]# puppet cert --list
+	[root@puppet-master]# puppet cert --list
 
-[root@puppet-master]# hostname
-ip-172-31-88-123.ec2.internal
+	[root@puppet-master]# hostname
+	ip-172-31-88-123.ec2.internal
 
-In the client specify the hostname of the server
-[root@puppet-client]# cat /etc/puppet/puppet.conf
-server=ip-172-31-88-123.ec2.internal
+	In the client specify the hostname of the server
+	[root@puppet-client]# cat /etc/puppet/puppet.conf
+	server=ip-172-31-88-123.ec2.internal
 
-[root@puppet-client]# systemctl restart puppet
+	[root@puppet-client]# systemctl restart puppet
 
 puppet-master
--------------
-[root@puppet-master]# puppet cert --list
-  "ip-172-31-82-51.ec2.internal" (SHA256) 3B:E4:F9:D9:07:9F:DD:5F:19:10:54:4C:35:B6:64:E1:36:F3:22:49:B7:FC:32:A7:FE:B1:82:F3:38:5C:43:8E
++++++++++++++
+	[root@puppet-master]# puppet cert --list
+	  "ip-172-31-82-51.ec2.internal" (SHA256) 3B:E4:F9:D9:07:9F:DD:5F:19:10:54:4C:35:B6:64:E1:36:F3:22:49:B7:FC:32:A7:FE:B1:82:F3:38:5C:43:8E
 
-[root@puppet-master]# puppet cert sign "ip-172-31-82-51.ec2.internal"
-Notice: Signed certificate request for ip-172-31-82-51.ec2.internal
-Notice: Removing file Puppet::SSL::CertificateRequest ip-172-31-82-51.ec2.internal at '/var/lib/puppet/ssl/ca/requests/ip-172-31-82-51.ec2.internal.pem'
+	[root@puppet-master]# puppet cert sign "ip-172-31-82-51.ec2.internal"
+	Notice: Signed certificate request for ip-172-31-82-51.ec2.internal
+	Notice: Removing file Puppet::SSL::CertificateRequest ip-172-31-82-51.ec2.internal at '/var/lib/puppet/ssl/ca/requests/ip-172-31-82-51.ec2.internal.pem'
 
-[root@puppet-master]# puppet cert --list
+	[root@puppet-master]# puppet cert --list
 
-[root@puppet-master]# puppet cert list --all
-+ "ip-172-31-82-51.ec2.internal"  (SHA256) 08:21:34:C0:91:A6:6A:7F:FB:44:31:D0:49:32:4D:E7:58:B8:4A:B4:99:E5:F5:72:45:0A:5F:09:1C:91:8A:D5
-+ "ip-172-31-88-123.ec2.internal" (SHA256) D5:C9:A7:71:58:AB:13:3C:CD:44:3E:51:D2:76:BE:41:FD:CC:1F:1E:43:B7:59:0E:21:45:2F:45:C4:7B:E4:2A (alt names: "DNS:ip-172-31-88-123.ec2.internal", "DNS:puppet", "DNS:puppet.ec2.internal")
+	[root@puppet-master]# puppet cert list --all
+	+ "ip-172-31-82-51.ec2.internal"  (SHA256) 08:21:34:C0:91:A6:6A:7F:FB:44:31:D0:49:32:4D:E7:58:B8:4A:B4:99:E5:F5:72:45:0A:5F:09:1C:91:8A:D5
+	+ "ip-172-31-88-123.ec2.internal" (SHA256) D5:C9:A7:71:58:AB:13:3C:CD:44:3E:51:D2:76:BE:41:FD:CC:1F:1E:43:B7:59:0E:21:45:2F:45:C4:7B:E4:2A (alt names: "DNS:ip-172-31-88-123.ec2.internal", "DNS:puppet", "DNS:puppet.ec2.internal")
 
 puppet-client
--------------
-[root@puppet-client]# puppet agent -t
-Info: Retrieving plugin
-Info: Caching catalog for ip-172-31-82-51.ec2.internal
-Info: Applying configuration version '1538897300'
-Notice: Finished catalog run in 0.01 seconds
++++++++++++++
+	[root@puppet-client]# puppet agent -t
+	Info: Retrieving plugin
+	Info: Caching catalog for ip-172-31-82-51.ec2.internal
+	Info: Applying configuration version '1538897300'
+	Notice: Finished catalog run in 0.01 seconds
 
 puppet-master
--------------
-create manifest named site.pp in /etc/puppet/manifests 
++++++++++++++
+create manifest named site.pp in /etc/puppet/manifests
+
+
+node specific configuration and generalised configuration
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	[root@ip-172-31-35-249 manifests]# cat site.pp
+	node default {
+	package {"screen":
+	  ensure => 'present',
+	}
+	}
+	node 'ip-172-31-33-50.ec2.internal' {
+	user { "user1":
+	      ensure => 'present',
+	      managehome => true
+	    }
+	}
+	[root@ip-172-31-35-249 manifests]# pwd
+	/etc/puppet/manifests
+
+
+puppet modules
+==============
+1. Generate module
+   Name of the module : "<author>-<mod>"
+   # puppet -module generate auth-httpd
+2. Build the module
+   puppet module build <module>
+3. Install the mdoule
+   puppet module install <module>
+
+creating users using puppet module
+++++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-35-249 ~]# puppet module generate binu-user
+	We need to create a metadata.json file for this module.  Please answer the
+	following questions; if the question is not applicable to this module, feel free
+	to leave it blank.
+
+	Puppet uses Semantic Versioning (semver.org) to version modules.
+	What version is this module?  [0.1.0]
+	-->
+
+	Who wrote this module?  [binu]
+	-->
+
+	What license does this module code fall under?  [Apache 2.0]
+	-->
+
+	How would you describe this module in a single sentence?
+	-->
+
+	Where is this module's source code repository?
+	-->
+
+	Where can others go to learn more about this module?
+	-->
+
+	Where can others go to file issues about this module?
+	-->
+
+	----------------------------------------
+	{
+	  "name": "binu-user",
+	  "version": "0.1.0",
+	  "author": "binu",
+	  "summary": null,
+	  "license": "Apache 2.0",
+	  "source": "",
+	  "project_page": null,
+	  "issues_url": null,
+	  "dependencies": [
+	    {
+	      "name": "puppetlabs-stdlib",
+	      "version_range": ">= 1.0.0"
+	    }
+	  ]
+	}
+	----------------------------------------
+
+	About to generate this metadata; continue? [n/Y]
+	--> y
+
+	Notice: Generating module at /root/binu-user...
+	Notice: Populating ERB templates...
+	Finished; module generated in binu-user.
+	binu-user/Rakefile
+	binu-user/manifests
+	binu-user/manifests/init.pp
+	binu-user/spec
+	binu-user/spec/classes
+	binu-user/spec/classes/init_spec.rb
+	binu-user/spec/spec_helper.rb
+	binu-user/tests
+	binu-user/tests/init.pp
+	binu-user/README.md
+	binu-user/metadata.json
+
+
+	[root@ip-172-31-35-249 ~]# ll
+	total 16
+	-rw-------. 1 root root 7752 Mar 23  2018 anaconda-ks.cfg
+	drwxr-xr-x. 5 root root  102 Oct 13 06:24 binu-user
+	-rw-------. 1 root root 7080 Mar 23  2018 original-ks.cfg
+	[root@ip-172-31-35-249 ~]# ll binu-user
+	total 12
+	drwxr-xr-x. 2 root root   21 Oct 13 06:24 manifests
+	-rw-r--r--. 1 root root  283 Oct 13 06:24 metadata.json
+	-rw-r--r--. 1 root root  633 Oct 13 06:24 Rakefile
+	-rw-r--r--. 1 root root 2891 Oct 13 06:24 README.md
+	drwxr-xr-x. 3 root root   43 Oct 13 06:24 spec
+	drwxr-xr-x. 2 root root   21 Oct 13 06:24 tests
+
+
+
+	[root@ip-172-31-35-249 manifests]# pwd
+	/root/binu-user/manifests
+	
+	[root@ip-172-31-35-249 manifests]# ll
+	total 4
+	-rw-r--r--. 1 root root 1029 Oct 13 06:28 init.pp
+	
+	[root@ip-172-31-35-249 manifests]# cat init.pp
+	# == Class: user
+	#
+	# Full description of class user here.
+	#
+	# === Parameters
+	#
+	# Document parameters here.
+	#
+	# [*sample_parameter*]
+	#   Explanation of what this parameter affects and what it defaults to.
+	#   e.g. "Specify one or more upstream ntp servers as an array."
+	#
+	# === Variables
+	#
+	# Here you should define a list of variables that this module would require.
+	#
+	# [*sample_variable*]
+	#   Explanation of how this variable affects the funtion of this class and if
+	#   it has a default. e.g. "The parameter enc_ntp_servers must be set by the
+	#   External Node Classifier as a comma separated list of hostnames." (Note,
+	#   global variables should be avoided in favor of class parameters as
+	#   of Puppet 2.6.)
+	#
+	# === Examples
+	#
+	#  class { user:
+	#    servers => [ 'pool.ntp.org', 'ntp.local.company.com' ],
+	#  }
+	#
+	# === Authors
+	#
+	# Author Name <author@domain.com>
+	#
+	# === Copyright
+	#
+	# Copyright 2018 Your name here, unless otherwise noted.
+	#
+	class user {
+	 user {"moduleuser":
+	 ensure => 'present',
+	 managehome => 'true',
+	}
+	}
+
+	[root@ip-172-31-35-249 ~]# ll
+	total 16
+	-rw-------. 1 root root 7752 Mar 23  2018 anaconda-ks.cfg
+	drwxr-xr-x. 5 root root  102 Oct 13 06:24 binu-user
+	-rw-------. 1 root root 7080 Mar 23  2018 original-ks.cfg
+	
+	[root@ip-172-31-35-249 ~]# puppet module build binu-user
+	Notice: Building /root/binu-user for release
+	Module built: /root/binu-user/pkg/binu-user-0.1.0.tar.gz
+	
+	[root@ip-172-31-35-249 ~]# pwd
+	/root
+
+	[root@ip-172-31-35-249 ~]# puppet module install /root/binu-user/pkg/binu-user-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppet/modules ...
+	Notice: Downloading from https://forgeapi.puppetlabs.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppet/modules
+	тттЌ binu-user (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+	[root@ip-172-31-35-249 ~]# puppet module list
+	Warning: Missing dependency 'puppetlabs-stdlib':
+	  'binu-user' (v0.1.0) requires 'puppetlabs-stdlib' (>= 0.0.0)
+	/etc/puppet/modules
+	ттт binu-user (v0.1.0)
+	ттт puppetlabs-stdlib (v5.1.0)
+	/usr/share/puppet/modules (no modules installed)
+	[root@ip-172-31-35-249 ~]# cd /etc/puppet/manifests
+	[root@ip-172-31-35-249 manifests]# ll
+	total 4
+	-rw-r--r--. 1 root root 175 Oct 13 05:39 site.pp
+	[root@ip-172-31-35-249 manifests]# vi site.pp
+	[root@ip-172-31-35-249 manifests]# cat site.pp
+	include user
+
+
+To rebuild the module
++++++++++++++++++++++
+1. uninstall the module
+	puppet module uninstall <module-name> --force
+2. Edit the manifests as required
+3. Build the module
+   	puppet module build <path>
+4. Install puppet module 
+   	puppet module install <path to gz>
+
+ssh password less authentication
+++++++++++++++++++++++++++++++++
+
+	[root@ip-172-31-35-249 ~]# puppet module generate binu-sshuser --skip-interview
+
+	Notice: Generating module at /root/binu-sshuser...
+	Notice: Populating ERB templates...
+	Finished; module generated in binu-sshuser.
+	binu-sshuser/Rakefile
+	binu-sshuser/manifests
+	binu-sshuser/manifests/init.pp
+	binu-sshuser/spec
+	binu-sshuser/spec/classes
+	binu-sshuser/spec/classes/init_spec.rb
+	binu-sshuser/spec/spec_helper.rb
+	binu-sshuser/tests
+	binu-sshuser/tests/init.pp
+	binu-sshuser/README.md
+	binu-sshuser/metadata.json
+
+	[mysshuser@ip-172-31-35-249 ~]$ ssh-keygen -t rsa
+	Generating public/private rsa key pair.
+	Enter file in which to save the key (/home/mysshuser/.ssh/id_rsa):
+	Created directory '/home/mysshuser/.ssh'.
+	Enter passphrase (empty for no passphrase):
+	Enter same passphrase again:
+	Your identification has been saved in /home/mysshuser/.ssh/id_rsa.
+	Your public key has been saved in /home/mysshuser/.ssh/id_rsa.pub.
+	The key fingerprint is:
+	SHA256:mV/3nLOkSf4jza4PtrEvv39MpNk1ybs7JKIThyxME9Y mysshuser@ip-172-31-35-249.ec2.internal
+	The key's randomart image is:
+	+---[RSA 2048]----+
+	|        .        |
+	|       o E       |
+	|      . .     . .|
+	|       o o     +o|
+	|      o S . . .=+|
+	|       o = + oo=+|
+	|        . = .==*+|
+	|         o  +oO*=|
+	|          .  BXXO|
+	+----[SHA256]-----+
+
+	[mysshuser@ip-172-31-35-249 ~]$ pwd
+	/home/mysshuser
+	
+	[mysshuser@ip-172-31-35-249 ~]$ cd .ssh
+	
+	[mysshuser@ip-172-31-35-249 .ssh]$ ll
+	total 8
+	-rw-------. 1 mysshuser mysshuser 1675 Oct 13 07:33 id_rsa
+	-rw-r--r--. 1 mysshuser mysshuser  421 Oct 13 07:33 id_rsa.pub
+	
+	[mysshuser@ip-172-31-35-249 .ssh]$ cat id_rsa.pub
+	ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCt9pJkklaCAA3IpGhoWmP1iuJBzLLyjLQgnPa5wN8gE/eN+mkw4CB9BrhTAYSmhdh6HX7GaJTq2Gy62QpUc5X1u7ke1/NjX+4+XJFM24mWy4WJglASi5K2ocg34yFcG49n4fpfyfkVM2T57CZEIh+ZTm4lI47I3Hhv6tx3ovWFx/QD7FEIzq+EE9WTQgobSZafOOELHYjaGCzDD3p1YtUNzV5Fu1ST5sktFWZbuCIIR7Jgik3H2tE/cg8SpRdvyU9yJD2t9O+/GyDgqleDH8mRseyFBb3FBZg2VMy2kR/j+SutVJ0VeSf31huxo1Pz/gut8cUps7qaXwXq8IeK/eAD mysshuser@ip-172-31-35-249.ec2.internal
+
+	[root@ip-172-31-35-249 ~]# vi binu-sshuser/manifests/init.pp
+
+	[root@ip-172-31-35-249 ~]# cat binu-sshuser/manifests/init.pp
+	class sshuser {
+	user  {"mysshuser":
+		ensure => 'present',
+		managehome => 'true',
+		}
+	file {"/home/mysshuser/.ssh":
+	      ensure => 'directory',
+	      owner => 'mysshuser',
+	      group => 'mysshuser',
+	      mode => '700',
+	      require => User ['mysshuser']
+	      }
+	file {"/home/mysshuser/.ssh/authorized_keys":
+		ensure => 'file',
+		owner => 'mysshuser',
+		content => 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCt9pJkklaCAA3IpGhoWmP1iuJBzLLyjLQgnPa5wN8gE/eN+mkw4CB9BrhTAYSmhdh6HX7GaJTq2Gy62QpUc5X1u7ke1/NjX+4+XJFM24mWy4WJglASi5K2ocg34yFcG49n4fpfyfkVM2T57CZEIh+ZTm4lI47I3Hhv6tx3ovWFx/QD7FEIzq+EE9WTQgobSZafOOELHYjaGCzDD3p1YtUNzV5Fu1ST5sktFWZbuCIIR7Jgik3H2tE/cg8SpRdvyU9yJD2t9O+/GyDgqleDH8mRseyFBb3FBZg2VMy2kR/j+SutVJ0VeSf31huxo1Pz/gut8cUps7qaXwXq8IeK/eAD mysshuser@ip-172-31-35-249.ec2.internal',
+		require => File ['/home/mysshuser/.ssh']
+	      }
+
+	[root@ip-172-31-35-249 ~]# ll
+	total 16
+	-rw-------. 1 root root 7752 Mar 23  2018 anaconda-ks.cfg
+	drwxr-xr-x. 5 root root  102 Oct 13 07:05 binu-sshuser
+	drwxr-xr-x. 6 root root  113 Oct 13 06:31 binu-user
+	-rw-------. 1 root root 7080 Mar 23  2018 original-ks.cfg
+
+	[root@ip-172-31-35-249 ~]# cd /etc/puppet/manifests
+	[root@ip-172-31-35-249 manifests]# vi site.pp
+	[root@ip-172-31-35-249 manifests]# cat site.pp
+	include sshuser
+
+	[root@ip-172-31-35-249 ~]# puppet module build binu-sshuser
+	Notice: Building /root/binu-sshuser for release
+	Module built: /root/binu-sshuser/pkg/binu-sshuser-0.1.0.tar.gz
+	[root@ip-172-31-35-249 ~]# puppet module install /root/binu-sshuser/pkg/binu-sshuser-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppet/modules ...
+	Notice: Downloading from https://forgeapi.puppetlabs.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppet/modules
+	тттЌ binu-sshuser (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+	[root@ip-172-31-35-249 ~]# su - mysshuser
+	Last login: Sat Oct 13 13:04:19 UTC 2018 on pts/0
+
+	[mysshuser@ip-172-31-35-249 ~]$ ssh 172.31.33.50
+	Last login: Sat Oct 13 13:07:40 2018 from ip-172-31-35-249.ec2.internal
+	
+	
+Defining subclass
+++++++++++++++++++
+	[root@ip-172-31-35-249 ~]# puppet module generate binu-httpd --skip-interview
+
+	Notice: Generating module at /root/binu-httpd...
+	Notice: Populating ERB templates...
+	Finished; module generated in binu-httpd.
+	binu-httpd/Rakefile
+	binu-httpd/manifests
+	binu-httpd/manifests/init.pp
+	binu-httpd/spec
+	binu-httpd/spec/classes
+	binu-httpd/spec/classes/init_spec.rb
+	binu-httpd/spec/spec_helper.rb
+	binu-httpd/tests
+	binu-httpd/tests/init.pp
+	binu-httpd/README.md
+	binu-httpd/metadata.json
+
+
+
+	[root@ip-172-31-35-249 ~]#  vi binu-httpd/manifests/package.pp
+
+	class httpd::package {
+	package  {"httpd":
+		ensure => 'present',
+		}
+	}
+
+
+
+	[root@ip-172-31-35-249 ~]# vi binu-httpd/manifests/config.pp
+
+	class httpd::config {
+	file {"/var/www/html/index.html":
+		ensure => 'file',
+		mode => '644',
+		content => "This is my web server\n",
+		}
+	}
+
+
+	[root@ip-172-31-35-249 ~]# vi binu-httpd/manifests/service.pp
+
+	class httpd::service {
+	service {"httpd":
+		ensure => 'running',
+		enable => 'true',
+		}
+	
+	}
+
+	[root@ip-172-31-35-249 ~]# vi binu-httpd/manifests/init.pp
+
+	class httpd {
+	class {'::httpd::package': } ->
+	class {'::httpd::config': } ~>
+	class {'::httpd::service': }
+	}
+
+
+	[root@ip-172-31-35-249 ~]# puppet module build binu-httpd
+	Notice: Building /root/binu-httpd for release
+	Module built: /root/binu-httpd/pkg/binu-httpd-0.1.0.tar.gz
+
+	[root@ip-172-31-35-249 ~]# puppet module install /root/binu-httpd/pkg/binu-httpd-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppet/modules ...
+	Notice: Downloading from https://forgeapi.puppetlabs.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppet/modules
+	тттЌ binu-httpd (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+	[root@ip-172-31-35-249 ~]# cat /etc/puppet/manifests/site.pp
+	include httpd
+
+
+checking the client
++++++++++++++++++++
+
+	[root@ip-172-31-44-106 ~]# puppet agent -t
+	Info: Retrieving plugin
+	Info: Loading facts in /var/lib/puppet/lib/facter/puppet_settings.rb
+	Info: Loading facts in /var/lib/puppet/lib/facter/service_provider.rb
+	Info: Loading facts in /var/lib/puppet/lib/facter/facter_dot_d.rb
+	Info: Loading facts in /var/lib/puppet/lib/facter/root_home.rb
+	Info: Loading facts in /var/lib/puppet/lib/facter/package_provider.rb
+	Info: Loading facts in /var/lib/puppet/lib/facter/pe_version.rb
+	Info: Caching catalog for ip-172-31-44-106.ec2.internal
+	Warning: The package type's allow_virtual parameter will be changing its default value from false to true in a future release. If you do not want to allow virtual packages, please explicitly set allow_virtual to false.
+	   (at /usr/share/ruby/vendor_ruby/puppet/type.rb:816:in `set_default')
+	Info: Applying configuration version '1539496038'
+	Notice: /Stage[main]/Httpd::Package/Package[httpd]/ensure: created
+	Notice: /Stage[main]/Httpd::Config/File[/var/www/html/index.html]/ensure: defined content as '{md5}94fdf6dfefbd81cfb599db7fc7b74f7b'
+	Info: Class[Httpd::Config]: Scheduling refresh of Class[Httpd::Service]
+	Info: Class[Httpd::Service]: Scheduling refresh of Service[httpd]
+	Notice: /Stage[main]/Httpd::Service/Service[httpd]/ensure: ensure changed 'stopped' to 'running'
+	Info: /Stage[main]/Httpd::Service/Service[httpd]: Unscheduling refresh on Service[httpd]
+	Notice: Finished catalog run in 4.99 seconds
+
+	[root@ip-172-31-44-106 ~]# systemctl status httpd
+	т httpd.service - The Apache HTTP Server
+	   Loaded: loaded (/usr/lib/systemd/system/httpd.service; enabled; vendor preset: disabled)
+	   Active: active (running) since Sun 2018-10-14 05:47:23 UTC; 6s ago
+	     Docs: man:httpd(8)
+		   man:apachectl(8)
+	 Main PID: 2358 (httpd)
+	   Status: "Processing requests..."
+	   CGroup: /system.slice/httpd.service
+		   тт2358 /usr/sbin/httpd -DFOREGROUND
+		   тт2359 /usr/sbin/httpd -DFOREGROUND
+		   тт2360 /usr/sbin/httpd -DFOREGROUND
+		   тт2361 /usr/sbin/httpd -DFOREGROUND
+		   тт2362 /usr/sbin/httpd -DFOREGROUND
+		   тт2363 /usr/sbin/httpd -DFOREGROUND
+
+	Oct 14 05:47:23 ip-172-31-44-106.ec2.internal systemd[1]: Starting The Apache...
+	Oct 14 05:47:23 ip-172-31-44-106.ec2.internal systemd[1]: Started The Apache ...
+	Hint: Some lines were ellipsized, use -l to show in full.
+
