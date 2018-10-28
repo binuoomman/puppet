@@ -1190,3 +1190,560 @@ checking the client
 	Oct 14 05:47:23 ip-172-31-44-106.ec2.internal systemd[1]: Started The Apache ...
 	Hint: Some lines were ellipsized, use -l to show in full.
 
+
+using the content from a file
++++++++++++++++++++++++++++++
+	[root@ip-172-31-35-249 ~]# cd binu-httpd/
+	[root@ip-172-31-35-249 binu-httpd]# ll
+	total 12
+	drwxr-xr-x. 2 root root   74 Oct 14 05:46 manifests
+	-rw-r--r--. 1 root root  284 Oct 14 05:32 metadata.json
+	drwxr-xr-x. 3 root root   61 Oct 14 05:47 pkg
+	-rw-r--r--. 1 root root  633 Oct 14 05:32 Rakefile
+	-rw-r--r--. 1 root root 2899 Oct 14 05:32 README.md
+	drwxr-xr-x. 3 root root   43 Oct 14 05:32 spec
+	drwxr-xr-x. 2 root root   21 Oct 14 05:32 tests
+
+
+	[root@ip-172-31-35-249 binu-httpd]# mkdir files
+	[root@ip-172-31-35-249 binu-httpd]# cd files
+	[root@ip-172-31-35-249 files]# pwd
+	/root/binu-httpd/files
+
+	[root@ip-172-31-35-249 files]# vi index.html
+	[root@ip-172-31-35-249 files]# cat index.html
+	My webserver
+	My webserver
+	My webserver
+	My webserver
+	My webserver
+
+	[root@ip-172-31-35-249 ~]# vi binu-httpd/manifests/config.pp
+	
+	[root@ip-172-31-35-249 ~]# cat binu-httpd/manifests/config.pp
+	class httpd::config {
+	file {"/var/www/html/index.html":
+		ensure => 'file',
+		mode => '644',
+	#       content => "This is my web server\n",
+		source => 'puppet:///modules/httpd/index.html',
+		}
+	}
+
+	[root@ip-172-31-35-249 ~]# puppet module uninstall binu-httpd --force
+	Notice: Preparing to uninstall 'binu-httpd' ...
+	Removed 'binu-httpd' (v0.1.0) from /etc/puppet/modules
+	
+	[root@ip-172-31-35-249 ~]# puppet module build binu-httpd
+	Notice: Building /root/binu-httpd for release
+	Module built: /root/binu-httpd/pkg/binu-httpd-0.1.0.tar.gz
+	
+	[root@ip-172-31-35-249 ~]# puppet module install /root/binu-httpd/pkg/binu-httpd-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppet/modules ...
+	Notice: Downloading from https://forgeapi.puppetlabs.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppet/modules
+	тттЌ binu-httpd (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+
+client
+++++++
+
+	[root@ip-172-31-44-106 ~]# cat /var/www/html/index.html
+	My webserver
+	My webserver
+	My webserver
+	My webserver
+	My webserver
+
+
+using templates
+++++++++++++++++
+
+	[root@ip-172-31-35-249 binu-httpd]# ll
+	total 12
+	drwxr-xr-x. 2 root root   24 Oct 14 06:37 files
+	drwxr-xr-x. 2 root root   74 Oct 14 06:39 manifests
+	-rw-r--r--. 1 root root  284 Oct 14 05:32 metadata.json
+	drwxr-xr-x. 3 root root   61 Oct 14 06:40 pkg
+	-rw-r--r--. 1 root root  633 Oct 14 05:32 Rakefile
+	-rw-r--r--. 1 root root 2899 Oct 14 05:32 README.md
+	drwxr-xr-x. 3 root root   43 Oct 14 05:32 spec
+	drwxr-xr-x. 2 root root   21 Oct 14 05:32 tests
+	[root@ip-172-31-35-249 binu-httpd]# mkdir templates
+
+	[root@ip-172-31-35-249 binu-httpd]# cd templates
+
+	[root@ip-172-31-35-249 binu-httpd]# vi index.erb
+
+	[root@ip-172-31-35-249 templates]# cat index.erb
+	This is my webserver <%= @fqdn %>
+
+	[root@ip-172-31-35-249 manifests]# pwd
+	/root/binu-httpd/manifests
+	[root@ip-172-31-35-249 manifests]# cat config.pp
+	class httpd::config {
+	file {"/var/www/html/index.html":
+		ensure => 'file',
+		mode => '644',
+	#       content => "This is my web server\n",
+	#       source => 'puppet:///modules/httpd/index.html',
+		content => template('httpd/index.erb')
+		}
+	}
+
+
+	[root@ip-172-31-35-249 manifests]# puppet module uninstall binu-httpd --force
+	Notice: Preparing to uninstall 'binu-httpd' ...
+	Removed 'binu-httpd' (v0.1.0) from /etc/puppet/modules
+
+	[root@ip-172-31-35-249 ~]# puppet module build binu-httpd
+	Notice: Building /root/binu-httpd for release
+	Module built: /root/binu-httpd/pkg/binu-httpd-0.1.0.tar.gz
+
+	[root@ip-172-31-35-249 ~]# puppet module install /root/binu-httpd/pkg/binu-httpd-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppet/modules ...
+	Notice: Downloading from https://forgeapi.puppetlabs.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppet/modules
+	тттЌ binu-httpd (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+client
+++++++
+	[root@ip-172-31-44-106 ~]# cat /var/www/html/index.html
+	This is my webserver ip-172-31-44-106.ec2.internal
+
+
+Puppet Enterprise 5.3 [Latest version is 6.0 beta version]
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Puppet Server Daemon:  puppetserver
+pkg: puppetserver [ in 3.6 puppet-server]
+
+puppetagenet daemon:  puppet-agent
+pkg: puppet-agent
+
+configuration files : /etc/puppetlabs/puppet/puppet.conf
+module path: /etc/puppetlabs/code/environments/
+
+To deploy the puppet code in the puppet 5.3:
+
+1. Define the enviornment
+       - copy the existing production directory to required folder
+       e.g:-  cp -rf /etc/puppetlabs/code/environments/production /etc/puppetlabs/code/environments/QA
+       
+2. Declare the resource in the - write a pp file in the manifests
+       /etc/puppetlabs/code/environments/QA/manifests/file.pp
+       
+3. On the agenet side verifty the configuration
+       puppet config print |grep -i environment
+   set the environment to QA
+       puppet config set environments QA
+    Apply the puppet run -
+       puppet agent -t
+       
+4. To deploy the module:
+      Generate  a puppet module
+         puppet module generate binu-modulename
+      We can copy the module to respective environment loacations.
+         cp modulename /etc/puppetlabs/cide/environments/production/modules/
+      
+      or
+      
+      puppet module install modulename 
+      modulepath -/etc/puppetlabs/cide/environments/QA/modules
+
+To call the module
+++++++++++++++++++
+Define the module name in the site.pp in the respective environment's manifests dolder
+      vi  /etc/puppetlabs/code/environments/QA/manifests/site.pp
+We can call with the wild card or default key word
+
+The below config applies to all the agents
+
+	node default {
+	include module_name
+	}
+
+	or
+
+	node * {
+	include module_name
+	}
+To deploy specific nodes
+
+	node '<server1>' , '<server2>' {
+	include  module_specific
+	}
+
+Puppet variable declaration:
++++++++++++++++++++++++++++
+1. Standalone : In manifest itself
+
+	vi package. pp
+
+	  $pkg = <name> e.g: openssh
+	  $configfile =  <config file > e.g:/etc/ssh/sshd_config
+
+	  package {$pkg:
+		  ensure => present
+		  }
+       
+2. Declaring variables in the module - inside the params.pp
+   
+   module/manifests/init.pp - main manifest
+   module/tests/init.pp - dry run/ smoke test (run puppet apply module/tests/init.pp to test - this will not apply only do the test of the code)
+   variable declaration : - module/tests/params.pp
+   
+structure of params.pp
+++++++++++++++++++++++
+   class <modulename> :: params {
+       $pkg = httpd
+       $config = /etc/ssh/sshd_config
+   }
+   
+creating a module using variable in puppet enterprise 5.5
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	[root@master ~]# puppet module generate binu-httpd --skip-interview
+	Warning: `puppet module generate` is deprecated and will be removed in a future release. This action has been replaced by Puppet Development Kit. For more information visit https://puppet.com/docs/pdk/latest/pdk.html.
+	   (location: /opt/puppetlabs/puppet/lib/ruby/vendor_ruby/puppet/face/module/generate.rb:142:in `generate')
+
+	Notice: Generating module at /root/httpd...
+	Notice: Populating templates...
+	Finished; module generated in httpd.
+	httpd/Gemfile
+	httpd/Rakefile
+	httpd/examples
+	httpd/examples/init.pp
+	httpd/manifests
+	httpd/manifests/init.pp
+	httpd/spec
+	httpd/spec/classes
+	httpd/spec/classes/init_spec.rb
+	httpd/spec/spec_helper.rb
+	httpd/README.md
+	httpd/metadata.json
+
+	[root@master ~]# cd httpd/manifests/
+
+	[root@master manifests]# ll
+	total 4
+	-rw-r--r--. 1 root root 1044 Oct 28 13:58 init.pp
+
+	[root@master manifests]# vi params.pp
+
+	[root@master manifests]# cat params.pp
+	class httpd::params {
+
+	   $pkg = httpd
+	   $config = '/var/www/html/index.html'
+	   $service = httpd
+
+	}
+
+	[root@master manifests]# vi pkg.pp
+
+	[root@master manifests]# cat pkg.pp
+	class httpd::pkg inherits httpd {
+
+	   package { $pkg:
+		ensure => 'present'
+	   }
+
+	}
+
+	[root@master manifests]# vi config.pp
+
+	[root@master manifests]# cat config.pp
+	class httpd::config inherits httpd {
+
+	   file { $config:
+		ensure => 'file',
+		content => "This is to install package",
+	   }
+
+	}
+
+	[root@master manifests]# vi service.pp
+
+	[root@master manifests]# cat service.pp
+	class httpd::service inherits httpd {
+
+	   service { $service:
+		ensure => 'running',
+		enable => 'true',
+	   }
+
+	}
+
+
+	[root@master manifests]# vi init.pp
+
+	[root@master manifests]# cat init.pp
+
+	class httpd (
+
+	   $pkg = $httpd::params::pkg,
+	   $config = $httpd::params::config,
+	   $service = $httpd::params::service
+
+	   ) inherits httpd::params {
+	   class { '::httpd::pkg': }
+	   class { '::httpd::config': }
+	   class { '::httpd::service': }
+	   }
+
+	[root@master ~]# ll /root/httpd/manifests
+	total 20
+	-rw-r--r--. 1 root root  126 Oct 28 14:38 config.pp
+	-rw-r--r--. 1 root root 1277 Oct 28 14:55 init.pp
+	-rw-r--r--. 1 root root  102 Oct 28 14:04 params.pp
+	-rw-r--r--. 1 root root   83 Oct 28 14:39 pkg.pp
+	-rw-r--r--. 1 root root  111 Oct 28 14:34 service.pp
+
+	[root@master ~]# puppet module build httpd
+	Warning: `puppet module build` is deprecated and will be removed in a future release. This action has been replaced by Puppet Development Kit. For more information visit https://puppet.com/docs/pdk/latest/pdk.html.
+	   (location: /opt/puppetlabs/puppet/lib/ruby/vendor_ruby/puppet/face/module/build.rb:56:in `block (3 levels) in <top (required)>')
+	Notice: Building /root/httpd for release
+	Module built: /root/httpd/pkg/binu-httpd-0.1.0.tar.gz
+
+	[root@master ~]# puppet module install /root/httpd/pkg/binu-httpd-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppetlabs/code/environments/production/modules ...
+	Notice: Downloading from https://forgeapi.puppet.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppetlabs/code/environments/production/modules
+	тттЌ binu-httpd (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+	[root@master ~]# puppet apply -e "include httpd" --noop
+	Notice: Compiled catalog for master.ec2.internal in environment production in 0.03 seconds
+	Notice: /Stage[main]/Httpd::Pkg/Package[httpd]/ensure: current_value 'purged', should be 'present' (noop)
+	Notice: Class[Httpd::Pkg]: Would have triggered 'refresh' from 1 event
+	Notice: /Stage[main]/Httpd::Config/File[/var/www/html/index.html]/ensure: current_value 'absent', should be 'file' (noop)
+	Notice: Class[Httpd::Config]: Would have triggered 'refresh' from 1 event
+	Notice: /Stage[main]/Httpd::Service/Service[httpd]/ensure: current_value 'stopped', should be 'running' (noop)
+	Notice: Class[Httpd::Service]: Would have triggered 'refresh' from 1 event
+	Notice: Stage[main]: Would have triggered 'refresh' from 3 events
+	Notice: Applied catalog in 0.28 seconds
+
+	[root@master manifests]# pwd
+	/etc/puppetlabs/code/environments/production/manifests
+
+	[root@master production]# vi site.pp
+
+client in production
+++++++++++++++++++++
+
+	[root@master production]# cat site.pp
+	include httpd
+
+	[root@client-1 ~]# puppet agent -t
+	Info: Using configured environment 'production'
+	Info: Retrieving pluginfacts
+	Info: Retrieving plugin
+	Info: Retrieving locales
+	Info: Loading facts
+	Info: Caching catalog for client-1.ec2.internal
+	Info: Applying configuration version '1540739806'
+	Notice: /Stage[main]/Httpd::Pkg/Package[httpd]/ensure: created
+	Notice: /Stage[main]/Httpd::Config/File[/var/www/html/index.html]/ensure: defined content as '{md5}b19385892c72d88765a16955eb355962'
+	Notice: /Stage[main]/Httpd::Service/Service[httpd]/ensure: ensure changed 'stopped' to 'running'
+	Info: /Stage[main]/Httpd::Service/Service[httpd]: Unscheduling refresh on Service[httpd]
+	Notice: Applied catalog in 4.84 seconds
+
+	[root@client-1 ~]# rpm -q httpd
+	httpd-2.4.6-80.el7_5.1.x86_64
+
+	[root@client-1 ~]# cat /var/www/html/index.html
+	This is to install package
+
+	[root@client-1 ~]# systemctl status httpd
+	т httpd.service - The Apache HTTP Server
+	   Loaded: loaded (/usr/lib/systemd/system/httpd.service; enabled; vendor preset: disabled)
+	   Active: active (running) since Sun 2018-10-28 15:16:51 UTC; 2min 5s ago
+	     Docs: man:httpd(8)
+		   man:apachectl(8)
+	 Main PID: 20461 (httpd)
+	   Status: "Total requests: 0; Current requests/sec: 0; Current traffic:   0 B/sec"
+	   CGroup: /system.slice/httpd.service
+		   тт20461 /usr/sbin/httpd -DFOREGROUND
+		   тт20462 /usr/sbin/httpd -DFOREGROUND
+		   тт20463 /usr/sbin/httpd -DFOREGROUND
+		   тт20464 /usr/sbin/httpd -DFOREGROUND
+		   тт20465 /usr/sbin/httpd -DFOREGROUND
+		   тт20466 /usr/sbin/httpd -DFOREGROUND
+
+	Oct 28 15:16:51 client-1 systemd[1]: Starting The Apache HTTP Server...
+	Oct 28 15:16:51 client-1 httpd[20461]: AH00558: httpd: Could not reliably d...ge
+	Oct 28 15:16:51 client-1 systemd[1]: Started The Apache HTTP Server.
+	Hint: Some lines were ellipsized, use -l to show in full.
+
+client in development
++++++++++++++++++++++
+
+	[root@client-2 ~]# puppet agent -t
+	Info: Using configured environment 'development'
+	Info: Retrieving pluginfacts
+	Info: Retrieving plugin
+	Info: Retrieving locales
+	Info: Loading facts
+	Info: Caching catalog for client-2.ec2.internal
+	Info: Applying configuration version '1540740066'
+	Notice: Applied catalog in 0.01 seconds
+
+creating a module using variable in a template 
++++++++++++++++++++++++++++++++++++++++++++++++
+
+	[root@master ~]# puppet module generate binu-sshd --skip-interview
+	Warning: `puppet module generate` is deprecated and will be removed in a future release. This action has been replaced by Puppet Development Kit. For more information visit https://puppet.com/docs/pdk/latest/pdk.html.
+	   (location: /opt/puppetlabs/puppet/lib/ruby/vendor_ruby/puppet/face/module/generate.rb:142:in `generate')
+
+	Notice: Generating module at /root/sshd...
+	Notice: Populating templates...
+	Finished; module generated in sshd.
+	sshd/Gemfile
+	sshd/Rakefile
+	sshd/examples
+	sshd/examples/init.pp
+	sshd/manifests
+	sshd/manifests/init.pp
+	sshd/spec
+	sshd/spec/classes
+	sshd/spec/classes/init_spec.rb
+	sshd/spec/spec_helper.rb
+	sshd/README.md
+	sshd/metadata.json
+
+	[root@master sshd]# pwd
+	/root/sshd
+
+	[root@master sshd]# mkdir templates
+
+	[root@master sshd]# cd templates
+
+	[root@master templates]# cp /etc/ssh/sshd_config sshd_config.erb
+
+	[root@master templates]# vi sshd_config.erb
+
+	[root@master templates]# cat sshd_config.erb|grep -i permitroot
+	PermitRootLogin <%= @permitRootLogin %>
+
+	[root@master manifests]# cat params.pp
+	class sshd::params {
+
+	   $pkg = openssh
+	   $config = '/etc/ssh/sshd_config'
+	   $service = sshd
+	   $permitRootLogin = no
+
+	}
+
+	[root@master manifests]# cat pkg.pp
+	class sshd::pkg inherits sshd {
+
+	   package { $pkg:
+		ensure => 'present'
+	   }
+
+	}
+
+	[root@master manifests]# cat config.pp
+	class sshd::config inherits sshd {
+
+	   file { $config:
+		ensure => 'file',
+		content => template('sshd/sshd_config.erb')
+	   }
+
+	}
+
+	[root@master manifests]# cat service.pp
+	class sshd::service inherits sshd {
+
+	   service { $service:
+		ensure => 'running',
+		enable => 'true',
+	   }
+
+	}
+
+	[root@master manifests]# cat init.pp
+	class sshd (
+
+	   $pkg = $sshd::params::pkg,
+	   $config = $sshd::params::config,
+	   $service = $sshd::params::service
+
+	   ) inherits sshd::params {
+	   class { '::sshd::pkg': }
+	   class { '::sshd::config': }
+	   class { '::sshd::service': }
+	   }
+
+	[root@master ~]# puppet parser validate sshd
+
+	[root@master ~]# puppet module build sshd
+	Warning: `puppet module build` is deprecated and will be removed in a future release. This action has been replaced by Puppet Development Kit. For more information visit https://puppet.com/docs/pdk/latest/pdk.html.
+	   (location: /opt/puppetlabs/puppet/lib/ruby/vendor_ruby/puppet/face/module/build.rb:56:in `block (3 levels) in <top (required)>')
+	Notice: Building /root/sshd for release
+	Module built: /root/sshd/pkg/binu-sshd-0.1.0.tar.gz
+
+	[root@master ~]# puppet module install /root/sshd/pkg/binu-sshd-0.1.0.tar.gz
+	Notice: Preparing to install into /etc/puppetlabs/code/environments/production/modules ...
+	Notice: Downloading from https://forgeapi.puppet.com ...
+	Notice: Installing -- do not interrupt ...
+	/etc/puppetlabs/code/environments/production/modules
+	тттЌ binu-sshd (v0.1.0)
+	  ттт puppetlabs-stdlib (v5.1.0)
+
+
+	[root@master ~]# puppet apply -e "include sshd" --noop
+	Notice: Compiled catalog for master.ec2.internal in environment production in 0.03 seconds
+	Notice: /Stage[main]/Sshd::Config/File[/etc/ssh/sshd_config]/content: current_value '{md5}781dbef6518331ceaa1de16137f5328c', should be '{md5}3971ad9410becaee31e0a67ff9acea45' (noop)
+	Notice: Class[Sshd::Config]: Would have triggered 'refresh' from 1 event
+	Notice: Stage[main]: Would have triggered 'refresh' from 1 event
+	Notice: Applied catalog in 0.72 seconds
+
+	[root@master manifests]# pwd
+	/etc/puppetlabs/code/environments/production/manifests
+
+	[root@master manifests]# cat site.pp
+	include sshd
+
+client
+++++++
+
+	[root@client-1 ~]# puppet agent -t
+	Info: Using configured environment 'production'
+	Info: Retrieving pluginfacts
+	Info: Retrieving plugin
+	Info: Retrieving locales
+	Info: Loading facts
+	Info: Caching catalog for client-1.ec2.internal
+	Info: Applying configuration version '1540752133'
+	Notice: /Stage[main]/Sshd::Config/File[/etc/ssh/sshd_config]/content:
+	--- /etc/ssh/sshd_config        2018-10-28 18:42:06.252314393 +0000
+	+++ /tmp/puppet-file20181028-22958-1sne3ql      2018-10-28 18:42:13.987281571 +0000
+	@@ -35,7 +35,7 @@
+	 # Authentication:
+
+	 #LoginGraceTime 2m
+	-#PermitRootLogin yes
+	+PermitRootLogin no
+	 #StrictModes yes
+	 #MaxAuthTries 6
+	 #MaxSessions 10
+
+	Info: Computing checksum on file /etc/ssh/sshd_config
+	Info: /Stage[main]/Sshd::Config/File[/etc/ssh/sshd_config]: Filebucketed /etc/ssh/sshd_config to puppet with sum 042908542e9dc5e8749dc37c8a36f547
+	Notice: /Stage[main]/Sshd::Config/File[/etc/ssh/sshd_config]/content:
+
+	Notice: /Stage[main]/Sshd::Config/File[/etc/ssh/sshd_config]/content: content changed '{md5}042908542e9dc5e8749dc37c8a36f547' to '{md5}dc3da88ce24f4518ff42f881fd688595'
+	Notice: Applied catalog in 0.20 seconds
+
+	[root@client-1 ~]# cat /etc/ssh/sshd_config|grep -i permitr
+	PermitRootLogin no
+
+
