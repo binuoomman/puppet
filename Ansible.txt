@@ -1,0 +1,609 @@
+Anisible -> started as Anisible.inc (Anisibleworks.inc)
+In 2015, RedHat acquired the organisation
+Frontend - Ain't Markup Language (Yaml)
+Backend - Python 
+
+Command line utility
+	httpd: Daemon
+	http://localhost
+	sshd daemon
+	ssh ==> remote server
+	
+	client => server
+	ssh    => sshd
+	
+Agentless Software
+
+Push mechanism to clients for configuration (but it is manual -this is addresed in Ansible Tower)
+ssh is used for connectivity between master and clients, python is required in clients
+
+Terminology
+
+Ansible control node - Ansible mater 
+Ansibile managed hosts - Ansible clients
+Ansible configuration
+Host inventory - Inventory of clients
+core modules (400+ modules) - equivalent to puppet resources (40 resources)
+playbooks - equivakent to puppet manifests
+Ad-oc commands - without using playbook you can run ansible commands
+
+Ansible Tower
+- Web based GUI
+- User friendly dash board to monitor resources
+
+www.docs.anisble.com
+https://www.ansible,com
+
+
+Ansible Server
+ - YAML
+ - ssh connectivity
+ - privileged escalaltion [sudo]
+ - ansible user - dedicated anisble user
+ - passwordless connectivity
+ - inventory (list of hosts)
+ 
+Client (ansible managed host)
+ - ssh
+ - python
+ - ansible user
+ 
+server setup
+++++++++++++
+	[root@master ec2-user]# rpm -ivh epel-release-latest-7.noarch.rpm
+
+	[root@master ec2-user]# yum install ansible -y
+
+	[root@master ec2-user]# ansible --version
+	ansible 2.7.0
+	  config file = /etc/ansible/ansible.cfg
+	  configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+	  ansible python module location = /usr/lib/python2.7/site-packages/ansible
+	  executable location = /bin/ansible
+	  python version = 2.7.5 (default, Feb 20 2018, 09:19:12) [GCC 4.8.5 20150623 (Red Hat 4.8.5-28)]
+
+Checking if python is installed in server and client
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+	[root@master ~]# python
+	Python 2.7.5 (default, Feb 20 2018, 09:19:12)
+	[GCC 4.8.5 20150623 (Red Hat 4.8.5-28)] on linux2
+	Type "help", "copyright", "credits" or "license" for more information.
+	>>>
+
+	[ec2-user@client-1 ~]$ sudo su -
+	Last login: Sat Nov  3 04:37:25 UTC 2018 on pts/0
+	[root@client-1 ~]# python
+	Python 2.7.5 (default, Feb 20 2018, 09:19:12)
+	[GCC 4.8.5 20150623 (Red Hat 4.8.5-28)] on linux2
+	Type "help", "copyright", "credits" or "license" for more information.
+	>>>
+
+Server-client configuration
++++++++++++++++++++++++++++
+1. Add a user in the server and client
+	[root@master ~]# useradd ansiuser
+	[root@client-1 ~]# useradd ansiuser
+
+2. Give the rights for the user to run sudo
+	[root@client-1 ~]# visudo
+	[root@client-1 ~]# cat /etc/sudoers |grep -i ansi
+	ansiuser        ALL=(ALL)       NOPASSWD: ALL
+
+3. Creating sshkey for the user
+	[root@master ~]# sudo su ansiuser -
+	
+	[ansiuser@master root]$ ssh-keygen -t rsa
+	Generating public/private rsa key pair.
+	Enter file in which to save the key (/home/ansiuser/.ssh/id_rsa):
+	Created directory '/home/ansiuser/.ssh'.
+	Enter passphrase (empty for no passphrase):
+	Enter same passphrase again:
+	Your identification has been saved in /home/ansiuser/.ssh/id_rsa.
+	Your public key has been saved in /home/ansiuser/.ssh/id_rsa.pub.
+	The key fingerprint is:
+	SHA256:cBmERH8NnPhuHz5c1dHAcGjwEVbej6H+GNuqLoIWtQA ansiuser@master
+	The key's randomart image is:
+	+---[RSA 2048]----+
+	|     ooooooo=*+..|
+	|  E   ...oo=o+.o.|
+	|   .  . +...o o +|
+	|    . .o ..  . o+|
+	|     o .S.  . ...|
+	|    . .   o.. .  |
+	|     o   . +oo   |
+	|    o . .   =*   |
+	|   .   . oo.+oo  |
+	+----[SHA256]-----+
+
+
+	[ansiuser@master ~]$ pwd
+	/home/ansiuser
+	
+	[ansiuser@master ~]$ cd .ssh
+	
+	[ansiuser@master .ssh]$ ll
+	total 8
+	-rw-------. 1 ansiuser ansiuser 1675 Nov  3 06:32 id_rsa
+	-rw-r--r--. 1 ansiuser ansiuser  397 Nov  3 06:32 id_rsa.pub
+	
+	[ansiuser@master .ssh]$ cat id_rsa.pub
+	ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMbIFnWZx4WUR0WrAuhdCZCqg1OHvs42/X5mjpSJF+Yw0bbivg8NMxhMEHV8wyS9zpJMaKqcOuFaicWgGGoNti8WaKlz0hpgGB0+UPa3rQFjp6Y1Ut5hPibQyTrunx/lDUJV5Bqx3YZJjYXpe5L530yPMRpIj91UlenqaKCzww5yCpXB54llrDsvw3mBMMbCxHZNy24XU9iwsxs+Z+5B+lZKQGBu44i/j50FimPaSk4XN0cBIPgLAltdX9hVJyVaoYbb4nKv4Xs/FAUuIZ4RRtgJEb+tV0H9xAx5f2eaS2dJ0FA0byxo69zkZN1pgB0YUKC4F6QmCWBG/XIEb8OqEL ansiuser@master
+
+4. Copy the public key to the client 
+	[root@client-1 ~]# sudo su ansiuser -
+	
+	[ansiuser@client-1 root]$ cd ~
+	
+	
+	[ansiuser@client-1 ~]$ pwd
+	/home/ansiuser
+	
+	[ansiuser@client-1 ~]$ cd .ssh
+	bash: cd: .ssh: No such file or directory
+	
+	[ansiuser@client-1 ~]$ mkdir .ssh
+	
+	[ansiuser@client-1 ~]$ cd .ssh
+	
+	[ansiuser@client-1 .ssh]$ vi authorized_keys
+	
+	[ansiuser@client-1 .ssh]$ cat authorized_keys
+	ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMbIFnWZx4WUR0WrAuhdCZCqg1OHvs42/X5mjpSJF+Yw0bbivg8NMxhMEHV8wyS9zpJMaKqcOuFaicWgGGoNti8WaKlz0hpgGB0+UPa3rQFjp6Y1Ut5hPibQyTrunx/lDUJV5Bqx3YZJjYXpe5L530yPMRpIj91UlenqaKCzww5yCpXB54llrDsvw3mBMMbCxHZNy24XU9iwsxs+Z+5B+lZKQGBu44i/j50FimPaSk4XN0cBIPgLAltdX9hVJyVaoYbb4nKv4Xs/FAUuIZ4RRtgJEb+tV0H9xAx5f2eaS2dJ0FA0byxo69zkZN1pgB0YUKC4F6QmCWBG/XIEb8OqEL ansiuser@master
+
+5. Set the permissoon to 700 for .ssh directory
+	[ansiuser@client-1 ~]$ pwd
+	/home/ansiuser
+	
+	[ansiuser@client-1 ~]$ ls -ald .ssh
+	drwx------. 2 ansiuser ansiuser 48 Nov  3 06:48 .ssh
+
+6. Set the permission of authorized_keys to 644
+	[ansiuser@client-1 ~]$ cd .ssh
+	
+	[ansiuser@client-1 .ssh]$ ll
+	total 8
+	-rw-r--r--. 1 ansiuser ansiuser 398 Nov  3 06:35 authorized_keys
+	-rw-r--r--. 1 ansiuser ansiuser 184 Nov  3 06:48 known_hosts
+
+7. checking passwordless authentication
+	[ansiuser@master ec2-user]$ ssh client-1 date
+	Sat Nov  3 06:53:33 UTC 2018
+	[ansiuser@master ec2-user]$ whoami
+	ansiuser
+
+	[ansiuser@master ec2-user]$ ssh client-1
+	Last login: Sat Nov  3 06:44:41 2018
+
+
+Adding host inventory
+++++++++++++++++++++++
+	[root@master ~]# vi /etc/ansible/hosts
+	[root@master ~]# cat /etc/ansible/hosts |grep -i client
+	client-1
+
+ansible command syntax
+++++++++++++++++++++++
+# ansible <host pattern> -m  <nodule> -a "argument"
+
+	[root@master ~]# ansible client-1 -m ping
+	client-1 | UNREACHABLE! => {
+	    "changed": false,
+	    "msg": "Failed to connect to the host via ssh: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\r\n",
+	    "unreachable": true
+	}
+
+
+	[ansiuser@master ec2-user]$ ansible all -m user -a "name=user1" -s
+	[DEPRECATION WARNING]: The sudo command line option has been deprecated in
+	favor of the "become" command line arguments. This feature will be removed in
+	version 2.9. Deprecation warnings can be disabled by setting
+	deprecation_warnings=False in ansible.cfg.
+	client-1 | CHANGED => {
+	    "changed": true,
+	    "comment": "",
+	    "create_home": true,
+	    "group": 1002,
+	    "home": "/home/user1",
+	    "name": "user1",
+	    "shell": "/bin/bash",
+	    "state": "present",
+	    "system": false,
+	    "uid": 1002
+	}
+
+adhoc shell commands
+++++++++++++++++++++
+
+	[ansiuser@master ec2-user]$ ansible all -a "id"
+	client-1 | CHANGED | rc=0 >>
+	uid=1001(ansiuser) gid=1001(ansiuser) groups=1001(ansiuser) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+
+Multiple shell commands
++++++++++++++++++++++++
+	[ansiuser@master ec2-user]$ ansible all -m shell -a "id;date"
+	client-1 | CHANGED | rc=0 >>
+	uid=1001(ansiuser) gid=1001(ansiuser) groups=1001(ansiuser) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+	Sat Nov  3 07:22:10 UTC 2018
+
+checking the synatx of a module 
++++++++++++++++++++++++++++++++
+ansible-doc module
+
+e:g: - ansible user
+
+	[ansiuser@master ~]$ ansible-doc user
+	> USER    (/usr/lib/python2.7/site-packages/ansible/modules/system/user.py)
+
+		Manage user accounts and user attributes. For Windows targets,
+		use the [win_user] module instead.
+
+	OPTIONS (= is mandatory):
+	...............
+	...............
+
+package installation
+++++++++++++++++++++
+ansible all -m yum -a "name=pkg state=latest" -s
+
+	[ansiuser@master ec2-user]$ ansible all -m yum -a "name=screen state=latest" -s
+	[DEPRECATION WARNING]: The sudo command line option has been deprecated in
+	favor of the "become" command line arguments. This feature will be removed in
+	version 2.9. Deprecation warnings can be disabled by setting
+	deprecation_warnings=False in ansible.cfg.
+	client-1 | CHANGED => {
+	    "ansible_facts": {
+		"pkg_mgr": "yum"
+	    },
+	    "changed": true,
+	    "msg": "",
+	    "rc": 0,
+	    "results": [
+		"Loaded plugins: amazon-id, rhui-lb, search-disabled-repos\nResolving Dependencies\n--> Running transaction check\n---> Package screen.x86_64 0:4.1.0-0.25.20120314git3c2946.el7 will be installed\n--> Finished Dependency Resolution\n\nDependencies Resolved\n\n================================================================================\n Package\n        Arch   Version                   Repository                        Size\n================================================================================\nInstalling:\n screen x86_64 4.1.0-0.25.20120314git3c2946.el7\n                                         rhui-REGION-rhel-server-releases 552 k\n\nTransaction Summary\n================================================================================\nInstall  1 Package\n\nTotal download size: 552 k\nInstalled size: 914 k\nDownloading packages:\nRunning transaction check\nRunning transaction test\nTransaction test succeeded\nRunning transaction\n  Installing : screen-4.1.0-0.25.20120314git3c2946.el7.x86_64               1/1 \n  Verifying  : screen-4.1.0-0.25.20120314git3c2946.el7.x86_64               1/1 \n\nInstalled:\n  screen.x86_64 0:4.1.0-0.25.20120314git3c2946.el7                              \n\nComplete!\n"
+	    ]
+	}
+
+	[ansiuser@master ec2-user]$ ansible all -m shell -a "rpm -qa|grep -i screen"
+	 [WARNING]: Consider using the yum, dnf or zypper module rather than running
+	rpm.  If you need to use command because yum, dnf or zypper is insufficient you
+	can add warn=False to this command task or set command_warnings=False in
+	ansible.cfg to get rid of this message.
+
+	client-1 | CHANGED | rc=0 >>
+	screen-4.1.0-0.25.20120314git3c2946.el7.x86_64
+
+Ansible playbook
+++++++++++++++++
+ansible-playbook <playbook>
+
+To define task in playbook YAML is used, extension of the file is .yml
+
+---  -> Starting of the YAML file
+
+...  -> Ending of the YAML file
+
+
+-<space><name of the task>  -> contents 
+        -one                -> Sublist
+        -two                -> Sublist
+        -three              -> Sublist
+
+Dictionary: key, value pair
+  key: value
+  yum: name=<pkg> state=latest
+  
+  or
+  
+  yum:
+    name: <pkg>
+    state: latest
+    
+vi playbook.yml
+
+---
+- name: To install the package
+  hosts: <name of the hosts>
+  remote_user: ansiuser
+  become: true
+  or
+  sudo: yes
+  tasks:
+    - name:  To install http
+      yum: name=httpd state=latest
+      service: name=httpd state=restarted enabled=true
+
+	[ansiuser@master ~]$ vi firstplay.yml
+	[ansiuser@master ~]$ cat firstplay.yml
+	---
+	- name: To install the package
+	  hosts: all
+	  remote_user: ansiuser
+	  become: true
+	  tasks:
+	  - name:  To install the httpd package
+	    yum: name=httpd state=latest
+	  - name:  To restart the service
+	    service: name=httpd state=restarted enabled=true
+
+	[ansiuser@master ~]$ ansible-playbook --syntax-check firstplay.yml
+
+	playbook: firstplay.yml
+
+	[ansiuser@master ~]$ ansible-playbook firstplay.yml --check
+
+	PLAY [To install the package] **************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-1]
+	ok: [client-2]
+
+	TASK [To install the httpd package] ********************************************
+	changed: [client-1]
+	changed: [client-2]
+
+	TASK [To restart the service] **************************************************
+	changed: [client-2]
+	changed: [client-1]
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=3    changed=2    unreachable=0    failed=0
+	client-2                   : ok=3    changed=2    unreachable=0    failed=0
+
+
+[ansiuser@master ~]$ cat firstplay.yml
+---
+- name: To install the package
+  hosts: all
+  remote_user: ansiuser
+  become: true
+  tasks:
+  - name:  To install the httpd package
+    yum: name=httpd state=latest
+  - name:  To restart the service
+    service: name=httpd state=restarted enabled=true
+  - name: To configure the web server home page
+    file: path=/var/www/html/index.html state=touch
+    
+[ansiuser@master ~]$ ansible-playbook firstplay.yml
+
+PLAY [To install the package] **************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [client-2]
+ok: [client-1]
+
+TASK [To install the httpd package] ********************************************
+changed: [client-1]
+changed: [client-2]
+
+TASK [To restart the service] **************************************************
+changed: [client-1]
+changed: [client-2]
+
+TASK [To configure the web server home page] ***********************************
+changed: [client-2]
+changed: [client-1]
+
+PLAY RECAP *********************************************************************
+client-1                   : ok=4    changed=3    unreachable=0    failed=0
+client-2                   : ok=4    changed=3    unreachable=0    failed=0
+
+[ansiuser@master ~]$ cat firstplay.yml
+---
+- name: To install the package
+  hosts: all
+  remote_user: ansiuser
+  become: true
+  tasks:
+  - name:  To install the httpd package
+    yum: name=httpd state=latest
+  - name:  To restart the service
+    service: name=httpd state=restarted enabled=true
+  - name: To configure the web server home page
+    file: path=/var/www/html/index.html state=touch
+  - name: To copy the content to the destination
+    copy: content="This is my webserver" dest=/var/www/html/index.html
+        
+[ansiuser@master ~]$ ansible-playbook firstplay.yml
+
+PLAY [To install the package] **************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [client-2]
+ok: [client-1]
+
+TASK [To install the httpd package] ********************************************
+ok: [client-1]
+ok: [client-2]
+
+TASK [To restart the service] **************************************************
+changed: [client-1]
+changed: [client-2]
+
+TASK [To configure the web server home page] ***********************************
+changed: [client-1]
+changed: [client-2]
+
+TASK [To copy the content to the destination] **********************************
+changed: [client-1]
+changed: [client-2]
+
+PLAY RECAP *********************************************************************
+client-1                   : ok=5    changed=3    unreachable=0    failed=0
+client-2                   : ok=5    changed=3    unreachable=0    failed=0
+
+[root@client-1 html]# cat index.html
+This is my webserver[root@client-1 html]#
+
+	[ansiuser@master ~]$ cat firstplay.yml
+	---
+	- name: To install the package
+	  hosts: all
+	  remote_user: ansiuser
+	  become: true
+	  tasks:
+	  - name:  To install the httpd package
+	    yum: name=httpd state=latest
+	  - name:  To restart the service
+	    service: name=httpd state=restarted enabled=true
+	  - name: To configure the web server home page
+	    file: path=/var/www/html/index.html state=touch
+	  - name: To copy the content to the destination
+	    copy: content="This is my webserver\n" dest=/var/www/html/index.html
+	  - name:  To insert a new line into the file
+	    lineinfile: line="Second line" path=/var/www/html/index.html
+
+	[root@client-1 html]# cat index.html
+	This is my webserver
+	Second line
+
+[ansiuser@master ~]$ cat firstplay.yml
+---
+- name: To install the package
+  hosts: all
+  remote_user: ansiuser
+  become: true
+  tasks:
+  - name:  To install the httpd package
+    yum: name=httpd state=latest
+  - name:  To restart the service
+    service: name=httpd state=restarted enabled=true
+  - name: To configure the web server home page
+    file: path=/var/www/html/index.html state=touch
+  - name: To copy the content to the destination
+    copy: content="This is my webserver\n" dest=/var/www/html/index.html
+  - name: To insert a new line into the file
+    lineinfile: line="Second line" path=/var/www/html/index.html
+  - name: To replace a string in the file
+    replace: replace=first regexp="Second" path=/var/www/html/index.html
+
+[root@client-1 html]# cat index.html
+This is my webserver
+first line
+
+	[ansiuser@master ~]$ vi variable.yml
+	[ansiuser@master ~]$ cat variable.yml
+	---
+	- name: To declare variables
+	  hosts: all
+	  remote_user: ansiuser
+	  become: true
+	  vars:
+	   users:
+	   - auser1
+	   - auser2
+	   - auser3
+	  tasks:
+	   - name: To create users on the clients
+	     user: name={{ item }} state=present
+	     with_items: "{{ users }}"
+	[ansiuser@master ~]$ ansible-playbook --syntax-check variable.yml
+
+	playbook: variable.yml
+	[ansiuser@master ~]$ ansible-playbook variable.yml
+
+	PLAY [To declare variables] ****************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-2]
+	ok: [client-1]
+
+	TASK [To create users on the clients] ******************************************
+	changed: [client-2] => (item=auser1)
+	changed: [client-1] => (item=auser1)
+	changed: [client-1] => (item=auser2)
+	changed: [client-2] => (item=auser2)
+	changed: [client-2] => (item=auser3)
+	changed: [client-1] => (item=auser3)
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=2    changed=1    unreachable=0    failed=0
+	client-2                   : ok=2    changed=1    unreachable=0    failed=0
+
+	[root@client-1 html]# cat /etc/passwd| grep -i auser
+	auser1:x:1003:1003::/home/auser1:/bin/bash
+	auser2:x:1004:1004::/home/auser2:/bin/bash
+	auser3:x:1005:1005::/home/auser3:/bin/bash
+
+[ansiuser@master ~]$ vi notify.yml
+[ansiuser@master ~]$ cat notify.yml
+---
+- name: To restart the service only when file content changes
+  hosts: all
+  remote_user: ansiuser
+  sudo: yes
+  tasks:
+  - name: To restart sshd
+    yum: name=httpd state=latest
+  - file: path=/var/www/html/index.html state=touch
+    notify: restart the service
+  handlers:
+  - name: restart the service
+    service: name=httpd state=restarted
+    
+[ansiuser@master ~]$ ansible-playbook notify.yml
+[DEPRECATION WARNING]: Instead of sudo/sudo_user, use become/become_user and
+make sure become_method is 'sudo' (default). This feature will be removed in
+version 2.9. Deprecation warnings can be disabled by setting
+deprecation_warnings=False in ansible.cfg.
+
+PLAY [To restart the service only when file content changes] *******************
+
+TASK [Gathering Facts] *********************************************************
+ok: [client-2]
+ok: [client-1]
+
+TASK [To restart sshd] *********************************************************
+ok: [client-1]
+ok: [client-2]
+
+TASK [file] ********************************************************************
+changed: [client-2]
+changed: [client-1]
+
+RUNNING HANDLER [restart the service] ******************************************
+changed: [client-1]
+changed: [client-2]
+
+PLAY RECAP *********************************************************************
+client-1                   : ok=4    changed=2    unreachable=0    failed=0
+client-2                   : ok=4    changed=2    unreachable=0    failed=0
+
+
+[ansiuser@master ~]$ vi notify.yml
+[ansiuser@master ~]$ cat notify.yml
+---
+- name: To restart the service only when file content changes
+  hosts: all
+  remote_user: ansiuser
+  sudo: yes
+  tasks:
+  - name: To restart sshd
+    yum: name=httpd state=latest
+  - file: path=/var/www/html/index.html state=file
+    notify: restart the service
+  handlers:
+  - name: restart the service
+    service: name=httpd state=restarted
+[ansiuser@master ~]$ ansible-playbook notify.yml
+[DEPRECATION WARNING]: Instead of sudo/sudo_user, use become/become_user and
+make sure become_method is 'sudo' (default). This feature will be removed in
+version 2.9. Deprecation warnings can be disabled by setting
+deprecation_warnings=False in ansible.cfg.
+
+PLAY [To restart the service only when file content changes] *******************
+
+TASK [Gathering Facts] *********************************************************
+ok: [client-1]
+ok: [client-2]
+
+TASK [To restart sshd] *********************************************************
+ok: [client-2]
+ok: [client-1]
+
+TASK [file] ********************************************************************
+ok: [client-1]
+ok: [client-2]
+
+PLAY RECAP *********************************************************************
+client-1                   : ok=3    changed=0    unreachable=0    failed=0
+client-2                   : ok=3    changed=0    unreachable=0    failed=0
