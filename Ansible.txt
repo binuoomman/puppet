@@ -19,7 +19,7 @@ ssh is used for connectivity between master and clients, python is required in c
 
 Terminology
 
-Ansible control node - Ansible mater 
+Ansible control node - Ansible master 
 Ansibile managed hosts - Ansible clients
 Ansible configuration
 Host inventory - Inventory of clients
@@ -607,3 +607,488 @@ ok: [client-2]
 PLAY RECAP *********************************************************************
 client-1                   : ok=3    changed=0    unreachable=0    failed=0
 client-2                   : ok=3    changed=0    unreachable=0    failed=0
+
+Ansible variables list (in priority order)
++++++++++++++++++++++++++++++++++++++++++
+
+1. command line variables
+2. playbook variables
+3. host variables
+4. group variables
+5. inventory variables
+
+factors --> system details or info
+resgister --> command o/p
+debug --> msg display
+
+
+calling variables in playbook
+++++++++++++++++++++++++++++++
+
+	[ansiuser@master ~]$ cat variable.yml
+	---
+	 - name: To perform the iteartion
+	   hosts: all
+	   remote_user: ansiuser
+	   become: true
+	   vars:
+	    users:
+	    - user1
+	    - user2
+	    - user3
+	    files:
+	    - file1
+	    - file2
+	    - file3
+	    pkgs:
+	    - httpd
+	    - vsftpd
+	    - mariadb
+	   tasks:
+	   - name: To create 4 users
+	     user: name={{ item }} state=present
+	     with_items: "{{ users }}"
+	   - name: To create files
+	     file: path=/var/tmp/{{ item }} state=touch
+	     with_items: "{{ files }}"
+
+	[ansiuser@master ~]$ ansible-playbook variable.yml
+
+	PLAY [To perform the iteartion] ************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-1]
+	ok: [client-2]
+
+	TASK [To create 4 users] *******************************************************
+	ok: [client-2] => (item=user1)
+	ok: [client-1] => (item=user1)
+	ok: [client-2] => (item=user2)
+	ok: [client-1] => (item=user2)
+	ok: [client-1] => (item=user3)
+	ok: [client-2] => (item=user3)
+
+	TASK [To create files] *********************************************************
+	changed: [client-1] => (item=file1)
+	changed: [client-2] => (item=file1)
+	changed: [client-2] => (item=file2)
+	changed: [client-1] => (item=file2)
+	changed: [client-2] => (item=file3)
+	changed: [client-1] => (item=file3)
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=3    changed=1    unreachable=0    failed=0
+	client-2                   : ok=3    changed=1    unreachable=0    failed=0
+
+
+[ansiuser@master ~]$ cat variable.yml
+---
+ - name: To perform the iteartion
+   hosts: all
+   remote_user: ansiuser
+   become: true
+   vars:
+    users:
+    - user1
+    - user2
+    - user3
+    files:
+    - file1
+    - file2
+    - file3
+    pkgs:
+    - httpd
+    - vsftpd
+   tasks:
+   - name: To create users
+     user: name={{ item }} state=present
+     with_items: "{{ users }}"
+   - name: To create files
+     file: path=/var/tmp/{{ item }} state=touch
+     with_items: "{{ files }}"
+   - name: To install the packages
+     yum: name={{ item }} state=latest
+     with_items: "{{ pkgs }}"
+   - name: To start the service
+     service: name={{ item }} state=restarted enabled=true
+     with_items: "{{ pkgs }}"
+
+
+[ansiuser@master ~]$ ansible-playbook variable.yml
+
+PLAY [To perform the iteartion] ************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [client-1]
+ok: [client-2]
+
+TASK [To create users] *******************************************************
+ok: [client-2] => (item=user1)
+ok: [client-1] => (item=user1)
+ok: [client-1] => (item=user2)
+ok: [client-2] => (item=user2)
+ok: [client-1] => (item=user3)
+ok: [client-2] => (item=user3)
+
+TASK [To create files] *********************************************************
+changed: [client-1] => (item=file1)
+changed: [client-2] => (item=file1)
+changed: [client-1] => (item=file2)
+changed: [client-2] => (item=file2)
+changed: [client-2] => (item=file3)
+changed: [client-1] => (item=file3)
+
+TASK [To install the packages] *************************************************
+[DEPRECATION WARNING]: Invoking "yum" only once while using a loop via
+squash_actions is deprecated. Instead of using a loop to supply multiple items
+and specifying `name: {{ item }}`, please use `name: u'{{ pkgs }}'` and remove
+the loop. This feature will be removed in version 2.11. Deprecation warnings
+can be disabled by setting deprecation_warnings=False in ansible.cfg.
+[DEPRECATION WARNING]: Invoking "yum" only once while using a loop via
+squash_actions is deprecated. Instead of using a loop to supply multiple items
+and specifying `name: {{ item }}`, please use `name: u'{{ pkgs }}'` and remove
+the loop. This feature will be removed in version 2.11. Deprecation warnings
+can be disabled by setting deprecation_warnings=False in ansible.cfg.
+ok: [client-1] => (item=[u'httpd', u'vsftpd'])
+ok: [client-2] => (item=[u'httpd', u'vsftpd'])
+
+TASK [To start the service] ****************************************************
+changed: [client-2] => (item=httpd)
+changed: [client-1] => (item=httpd)
+changed: [client-1] => (item=vsftpd)
+changed: [client-2] => (item=vsftpd)
+
+PLAY RECAP *********************************************************************
+client-1                   : ok=5    changed=2    unreachable=0    failed=0
+client-2                   : ok=5    changed=2    unreachable=0    failed=0
+
+
+variables in separate file and calling the variable file
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	[ansiuser@master ~]$ cat vars.yml
+	users:
+	- user4
+	- user5
+	- user6
+	files:
+	- file4
+	- file5
+	- file6
+
+
+
+	[ansiuser@master ~]$ cat variable.yml
+	---
+	 - name: To perform the iteartion
+	   hosts: all
+	   remote_user: ansiuser
+	   become: true
+	   vars_files:
+	       - vars.yml
+	   tasks:
+	   - name: To create 4 users
+	     user: name={{ item }} state=present
+	     with_items: "{{ users }}"
+	   - name: To create files
+	     file: path=/var/tmp/{{ item }} state=touch
+	     with_items: "{{ files }}"
+
+
+	[ansiuser@master ~]$ ansible-playbook variable.yml
+
+	PLAY [To perform the iteartion] ************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-2]
+	ok: [client-1]
+
+	TASK [To create 4 users] *******************************************************
+	changed: [client-1] => (item=user4)
+	changed: [client-2] => (item=user4)
+	changed: [client-1] => (item=user5)
+	changed: [client-2] => (item=user5)
+	changed: [client-1] => (item=user6)
+	changed: [client-2] => (item=user6)
+
+	TASK [To create files] *********************************************************
+	changed: [client-2] => (item=file4)
+	changed: [client-1] => (item=file4)
+	changed: [client-1] => (item=file5)
+	changed: [client-2] => (item=file5)
+	changed: [client-1] => (item=file6)
+	changed: [client-2] => (item=file6)
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=3    changed=2    unreachable=0    failed=0
+	client-2                   : ok=3    changed=2    unreachable=0    failed=0
+
+[ansiuser@master ~]$ ansible all --list-hosts
+  hosts (2):
+    client-1
+    client-2
+
+host variables
+++++++++++++++
+mkdir host_vars
+cd host_vars
+vi <hostname>
+var1=value1
+var2=value2
+
+	[ansiuser@master ~]$ pwd
+	/home/ansiuser
+	[ansiuser@master ~]$ mkdir host_vars
+	[ansiuser@master ~]$ cd host_vars
+	[ansiuser@master host_vars]$ vi client-1
+	[ansiuser@master host_vars]$ cat client-1
+	---
+	users:
+	  - client1user1
+	  - client1user2
+	  - client1user3
+	files:
+	  - client1file1
+	  - client1file2
+	  - client1file3
+
+
+	[ansiuser@master host_vars]$ cat client-2
+	---
+	users:
+	  - client2user1
+	  - client2user2
+	  - client2user3
+	files:
+	  - client2file1
+	  - client2file2
+	  - client2file3
+
+	[ansiuser@master ~]$ cat variable.yml
+	---
+	 - name: To perform the iteartion
+	   hosts: all
+	   remote_user: ansiuser
+	   become: true
+	   tasks:
+	   - name: To create users
+	     user: name={{ item }} state=present
+	     with_items: "{{ users }}"
+	   - name: To create files
+	     file: path=/var/tmp/{{ item }} state=touch
+	     with_items: "{{ files }}"
+
+	[ansiuser@master ~]$ ansible-playbook variable.yml
+
+	PLAY [To perform the iteartion] ************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-1]
+	ok: [client-2]
+
+	TASK [To create users] *********************************************************
+	changed: [client-1] => (item=client1user1)
+	changed: [client-2] => (item=client2user1)
+	changed: [client-1] => (item=client1user2)
+	changed: [client-2] => (item=client2user2)
+	changed: [client-1] => (item=client1user3)
+	changed: [client-2] => (item=client2user3)
+
+	TASK [To create files] *********************************************************
+	changed: [client-1] => (item=client1file1)
+	changed: [client-2] => (item=client2file1)
+	changed: [client-2] => (item=client2file2)
+	changed: [client-1] => (item=client1file2)
+	changed: [client-1] => (item=client1file3)
+	changed: [client-2] => (item=client2file3)
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=3    changed=2    unreachable=0    failed=0
+
+group variables
+++++++++++++++
+mkdir group_vars
+cd host_vars
+vi <group name>
+var1=value1
+var2=value2
+
+	[root@master ~]# cat /etc/ansible/hosts
+	[prod]
+	client-1
+	[qa]
+	client-2
+
+	[ansiuser@master ~]$ mkdir group_vars
+	[ansiuser@master ~]$ cd group_vars
+
+
+	[ansiuser@master group_vars]$ cat prod
+	---
+	users:
+	  - produser1
+	  - produser2
+	  - produser3
+	files:
+	  - prodfile1
+	  - prodfile2
+	  - prodfile3
+
+	[ansiuser@master group_vars]$ cat qa
+	---
+	users:
+	  - qauser1
+	  - qauser2
+	  - qauser3
+	files:
+	  - qafile1
+	  - qafile2
+	  - qafile3
+
+
+	[ansiuser@master ~]$ mv host_vars hosts_vars
+	[ansiuser@master ~]$ ll
+	total 12
+	drwxrwxr-x. 2 ansiuser ansiuser  28 Nov 17 06:54 group_vars
+	drwxrwxr-x. 2 ansiuser ansiuser  38 Nov 17 06:35 hosts_vars
+	-rw-rw-r--. 1 ansiuser ansiuser  18 Nov 17 05:48 variable.retry
+	-rw-rw-r--. 1 ansiuser ansiuser 308 Nov 17 06:36 variable.yml
+	-rw-rw-r--. 1 ansiuser ansiuser  62 Nov 17 05:58 vars.yml
+
+	[ansiuser@master ~]$ ansible-playbook variable.yml
+
+	PLAY [To perform the iteartion] ************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-2]
+	ok: [client-1]
+
+	TASK [To create users] *********************************************************
+	changed: [client-2] => (item=qauser1)
+	changed: [client-1] => (item=produser1)
+	changed: [client-2] => (item=qauser2)
+	changed: [client-1] => (item=produser2)
+	changed: [client-1] => (item=produser3)
+	changed: [client-2] => (item=qauser3)
+
+	TASK [To create files] *********************************************************
+	changed: [client-1] => (item=prodfile1)
+	changed: [client-2] => (item=qafile1)
+	changed: [client-1] => (item=prodfile2)
+	changed: [client-2] => (item=qafile2)
+	changed: [client-1] => (item=prodfile3)
+	changed: [client-2] => (item=qafile3)
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=3    changed=2    unreachable=0    failed=0
+	client-2                   : ok=3    changed=2    unreachable=0    failed=0
+
+command line variable
++++++++++++++++++++++
+ansible-playbook variable.yml -e "users=commandlineuser files=commandlinefiles"
+
+	[ansiuser@master ~]$ ansible-playbook variable.yml -e "users=commandlineuser files=commandlinefiles"
+
+	PLAY [To perform the iteartion] ************************************************
+
+	TASK [Gathering Facts] *********************************************************
+	ok: [client-2]
+	ok: [client-1]
+
+	TASK [To create users] *********************************************************
+	changed: [client-2] => (item=commandlineuser)
+	changed: [client-1] => (item=commandlineuser)
+
+	TASK [To create files] *********************************************************
+	changed: [client-1] => (item=commandlinefiles)
+	changed: [client-2] => (item=commandlinefiles)
+
+	PLAY RECAP *********************************************************************
+	client-1                   : ok=3    changed=2    unreachable=0    failed=0
+	client-2                   : ok=3    changed=2    unreachable=0    failed=0
+
+
+facters
++++++++
+	[ansiuser@master ~]$ ansible all -m setup |more
+	client-2 | SUCCESS => {
+	    "ansible_facts": {
+		"ansible_all_ipv4_addresses": [
+		    "172.31.82.24"
+		],
+		"ansible_all_ipv6_addresses": [
+		    "fe80::107e:18ff:fe39:967a"
+		],
+		"ansible_apparmor": {
+		    "status": "disabled"
+		},
+		"ansible_architecture": "x86_64",
+		"ansible_bios_date": "08/24/2006",
+		"ansible_bios_version": "4.2.amazon",
+		"ansible_cmdline": {
+		    "BOOT_IMAGE": "/boot/vmlinuz-3.10.0-957.el7.x86_64",
+		    "LANG": "en_US.UTF-8",
+		    "console": "tty0",
+		    "crashkernel": "auto",
+		    "net.ifnames": "0",
+		    "rd.blacklist": "nouveau",
+		    "ro": true,
+		    "root": "UUID=88fd4d41-c180-4721-80c6-535249a4a2bb"
+	........
+	........
+
+facters with filter
++++++++++++++++++++
+
+	[ansiuser@master ~]$ ansible all -m setup -a "filter=ansible_all_ipv6_addresses"
+	client-1 | SUCCESS => {
+	    "ansible_facts": {
+		"ansible_all_ipv6_addresses": [
+		    "fe80::10fd:36ff:feb4:f3c6"
+		]
+	    },
+	    "changed": false
+	}
+	client-2 | SUCCESS => {
+	    "ansible_facts": {
+		"ansible_all_ipv6_addresses": [
+		    "fe80::107e:18ff:fe39:967a"
+		]
+	    },
+	    "changed": false
+	}
+
+
+[ansiuser@master ~]$ ansible all -m setup -a "filter=ansible_fqdn"
+client-1 | SUCCESS => {
+    "ansible_facts": {
+        "ansible_fqdn": "client-1"
+    },
+    "changed": false
+}
+client-2 | SUCCESS => {
+    "ansible_facts": {
+        "ansible_fqdn": "client-2"
+    },
+    "changed": false
+}
+
+
+To show the message during execution (register and debug)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	[ansiuser@master ~]$ cat variable.yml
+	---
+	 - name: To perform the iteartion
+	   hosts: all
+	   remote_user: ansiuser
+	   become: true
+	   tasks:
+	   - name: To create users
+	     user: name={{ item }} state=present
+	     with_items: "{{ users }}"
+	     register: status
+	   - name: To show message
+	     debug: var=status
+	   - name: To create files
+	     file: path=/var/tmp/{{ item }} state=touch
+	     with_items: "{{ files }}"
