@@ -1,0 +1,18 @@
+Job management tool
+Backend is Java
+
+ Free style Jobs
+ Pipeline Jobs
+ 
+ 
+[root@ip-172-31-86-171 ec2-user]# wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
+[root@ip-172-31-86-171 ec2-user]# rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
+[root@ip-172-31-86-171 ec2-user]# yum install java
+[root@ip-172-31-86-171 ec2-user]# yum install jenkins
+[root@ip-172-31-86-171 ec2-user]# systemctl restart jenkins
+[root@ip-172-31-86-171 ec2-user]# ps -ef|grep jenkin
+jenkins  13494     1  8 05:27 ?        00:00:24 /etc/alternatives/java -Dcom.sun.akuma.Daemon=daemonized -Djava.awt.headless=true -DJENKINS_HOME=/var/lib/jenkins -jar /usr/lib/jenkins/jenkins.war --logfile=/var/log/jenkins/jenkins.log --webroot=/var/cache/jenkins/war --daemon --httpPort=8080 --debug=5 --handlerCountMax=100 --handlerCountMaxIdle=20
+root     13573 13150  0 05:32 pts/1    00:00:00 grep --color=auto jenkin
+
+[root@ip-172-31-86-171 ec2-user]# cat /var/lib/jenkins/secrets/initialAdminPassword
+7003b553129e4713bc736d3f4d25fcfd
